@@ -11,12 +11,12 @@
 
 long g_bins;               // Total number of usable pixels.
 long g_bands;              // Total number of bandpowers.
-double g_omega;           // Total area of usable pixels.
-double g_total_galaxies;  // Total number of galaxies in usable pixels.
+double g_omega;            // Total area of usable pixels.
+double g_total_galaxies;   // Total number of galaxies in usable pixels.
 
+/** Given the pixelized galaxy file and bandpower file, this program will calculate the angular power 
+	* spectrum that best fits the input files. */
 int main(int argc, char *argv[])
-     // Given the pixelized galaxy file and bandpower file, this program will calculate the angular power 
-     //	spectrum that best fits the input files. 
 {
   int i, n, *C_start, *C_stop;
   long nside, NSIDE;
