@@ -1,7 +1,7 @@
 #include "angular_power_spectrum.h"
 
+/// Calculate the Legendre polynomial P_n(x) using the recurrence relation.
 double Legendre(double x, int n)
-     /* Calculate the Legendre polynomial P_n(x) using the recurrence relation. */
 {
   int i;
   double hold1, hold2, new;
@@ -23,9 +23,9 @@ double Legendre(double x, int n)
   return 0.0;
 }
 
+/** Calculate and return the trace of the matrix multiplication AB, where A is N x P and B is P x N.
+  * NOTE: This is for matrices in column major order, which is the standard in Fortran not C. */
 double trace_multiply(double *A, double *B, int N, int P)
-     /* Calculate and return the trace of the matrix multiplication AB, where A is N x P and B is P x N.
-	NOTE: This is for matrices in column major order, which is the standard in Fortran not C. */
 {
   int i, j;
   double sum, trace;
@@ -42,8 +42,8 @@ double trace_multiply(double *A, double *B, int N, int P)
   return trace;
 }
 
+/// Calculate A * B = C where A and B are diagonal square N x N matrices.
 int multiply_diagonal_matrices(double *A, double *B, double *C, int N)
-     /* Calculate A * B = C where A and B are diagonal square N x N matrices. */
 {
   int i;
 
@@ -54,8 +54,8 @@ int multiply_diagonal_matrices(double *A, double *B, double *C, int N)
   return 0;
 }
 
+/// Calculate the trace of N x N matrix A
 double matrix_trace(double *A, int N)
-     /* Calculate the trace of N x N matrix A */
 {
   int i;
   double trace;
@@ -68,8 +68,8 @@ double matrix_trace(double *A, int N)
   return trace;
 }
 
+/// In place inversion of a square size by size matrix
 double invert_matrix(double *A, long size)
-     /* In place inversion of a square size by size matrix */
 {
   int M, N, LDA, order, INFO, LWORK, *IPIV;
   double inversetime, *WORK;
@@ -92,8 +92,8 @@ double invert_matrix(double *A, long size)
   return inversetime;
 }
 
+/// Multiplication of two square size by size matrices: AB = C
 double multiply_square_matrices(double *A, double *B, double *C, long size)
-     /* Multiplication of two square size by size matrices: AB = C */
 {
   int LDA, LDB, LDC, M, N, K;
   double ALPHA, BETA, multiplicationtime;
@@ -114,8 +114,8 @@ double multiply_square_matrices(double *A, double *B, double *C, long size)
   return multiplicationtime;
 }
 
+/// Multiplication of two matrices of size (MxN) = (MxK)(KxN): C = AB
 double multiply_matrices(double *A, double *B, double *C, long m, long k, long n)
-     /* Multiplication of two matrices of size (MxN) = (MxK)(KxN): C = AB */
 {
   int LDA, LDB, LDC, M, N, K;
   double ALPHA, BETA, multiplicationtime;
@@ -150,8 +150,9 @@ double dot_product(double *A, double *B, long size)
 
   return total;
 }
+
+/// Transpose m x n matrix A into n x m matrix B
 void matrix_transpose(double *A, double *B, long m, long n)
-     /* Transpose m x n matrix A into n x m matrix B */
 {
   int i, j;
 
