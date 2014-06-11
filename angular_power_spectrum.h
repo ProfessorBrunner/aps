@@ -19,10 +19,10 @@
 #define KLargeNumber 1000000.0         // Large number to remove the mean mode in KL compression
 
 // Defined in *_spectrum.c
-extern long bins;
-extern long bands;
-extern double omega;
-extern double total_galaxies;
+extern long g_bins;
+extern long g_bands;
+extern double g_omega;
+extern double g_total_galaxies;
 
 // In tools.c
 int object_count(FILE *, int);

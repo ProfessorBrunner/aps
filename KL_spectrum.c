@@ -9,10 +9,10 @@
   ~2700 pixels: 15 min walltime / 24 proc / ~4G mem
 */
 
-long bins;               // Total number of usable pixels.
-long bands;              // Total number of bandpowers.
-double omega;           // Total area of usable pixels.
-double total_galaxies;  // Total number of galaxies in usable pixels.
+long g_bins;               // Total number of usable pixels.
+long g_bands;              // Total number of bandpowers.
+double g_omega;           // Total area of usable pixels.
+double g_total_galaxies;  // Total number of galaxies in usable pixels.
 
 int main(int argc, char *argv[])
      // Given the pixelized galaxy file and bandpower file, this program will calculate the angular power 
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
   time(&t0);
 
-  // Count the number of pixels in the object file to set bins. 
+  // Count the number of pixels in the object file to set g_bins. 
   objects = fopen(argv[1], "r");
   assert(objects!=NULL);
   printf("#Using %s as the input object file.\n", argv[1]);
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
   NSIDE = count_Healpix_pixels(argv[1], healpix);
   assert(NSIDE==nside);
 
-  // Count the number of lines in the bandpower file to set bands. 
+  // Count the number of lines in the bandpower file to set g_bands. 
   bandpowers = fopen(argv[2], "r");
   assert(bandpowers!=NULL);
   printf("#Using %s as the input bandpower file.\n", argv[2]);
-  bands = object_count(bandpowers, kLinesPerObject);
+  g_bands = object_count(bandpowers, kLinesPerObject);
 
   // Strip the directory structure from the filename if present
   if (strrchr(argv[2], '/')!=NULL) {
@@ -59,20 +59,20 @@ int main(int argc, char *argv[])
   sprintf(filename, "Window_%s", name);
   output_Window = fopen(filename, "w");
   
-  printf("#Bins = %ld, Bands = %ld\n", bins, bands);
+  printf("#Bins = %ld, Bands = %ld\n", g_bins, g_bands);
   fflush(NULL);
 
-  C = (double *)malloc(bands*sizeof(double));
-  C_change = (double *)malloc(bands*sizeof(double));
-  C_start = (int *)malloc((bands)*sizeof(int));
-  C_stop = (int *)malloc((bands)*sizeof(int));
-  ra = (double *)malloc(bins*sizeof(double));
-  dec = (double *)malloc(bins*sizeof(double));
-  overdensity = (double *)malloc(bins*sizeof(double));
-  data_covariance = (double *)malloc(bins*bins*sizeof(double));
-  noise = (double *)malloc(bins*bins*sizeof(double));
-  cos_angle = (double *)malloc(bins*bins*sizeof(double));
-  signal = (double *)malloc(bands*bins*bins*sizeof(double));
+  C = (double *)malloc(g_bands*sizeof(double));
+  C_change = (double *)malloc(g_bands*sizeof(double));
+  C_start = (int *)malloc((g_bands)*sizeof(int));
+  C_stop = (int *)malloc((g_bands)*sizeof(int));
+  ra = (double *)malloc(g_bins*sizeof(double));
+  dec = (double *)malloc(g_bins*sizeof(double));
+  overdensity = (double *)malloc(g_bins*sizeof(double));
+  data_covariance = (double *)malloc(g_bins*g_bins*sizeof(double));
+  noise = (double *)malloc(g_bins*g_bins*sizeof(double));
+  cos_angle = (double *)malloc(g_bins*g_bins*sizeof(double));
+  signal = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));
   assert(C!=NULL);
   assert(C_change!=NULL);
   assert(C_start!=NULL);
@@ -110,12 +110,12 @@ int main(int argc, char *argv[])
   time(&t3);
   printf("#Calculated KL Compression.  Elapsed time = %lf seconds.\n", difftime(t3, t2));
 
-  F = (double *)malloc(bands*bands*sizeof(double));
-  A = (double *)malloc(bands*bins*bins*sizeof(double));
-  B = (double *)malloc(bands*bins*bins*sizeof(double));
-  average = (double *)malloc(bands*sizeof(double));
-  model_covariance = (double *)malloc(bins*bins*sizeof(double));
-  difference = (double *)malloc(bins*bins*sizeof(double));
+  F = (double *)malloc(g_bands*g_bands*sizeof(double));
+  A = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));
+  B = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));
+  average = (double *)malloc(g_bands*sizeof(double));
+  model_covariance = (double *)malloc(g_bins*g_bins*sizeof(double));
+  difference = (double *)malloc(g_bins*g_bins*sizeof(double));
   assert(F!=NULL);
   assert(A!=NULL);
   assert(B!=NULL);

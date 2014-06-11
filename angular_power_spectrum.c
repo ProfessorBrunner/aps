@@ -16,16 +16,16 @@ long count_Healpix_pixels(char *input_healpix, float *healpix)
   }
 
   NSIDE = strtol(strpbrk(name, "0123456789"), trash, 10);
-  total_galaxies = strtod(strpbrk(*trash, "0123456789"), (char**)NULL);
+  g_total_galaxies = strtod(strpbrk(*trash, "0123456789"), (char**)NULL);
   printf("#Done reading %ld lines.\n", nside2npix(NSIDE));
 
-  bins = 0;
+  g_bins = 0;
   for (i=0; i<nside2npix(NSIDE); i++) {
     if (healpix[i] >= -1.0) {
-      bins++;
+      g_bins++;
     }
   }
-  printf("#Done counting %ld pixels.\n", bins);
+  printf("#Done counting %ld pixels.\n", g_bins);
 
   return NSIDE;
 }
@@ -37,7 +37,7 @@ int read_bandpower_file(FILE *bandpowers, double *C, int *C_start, int *C_stop)
   double trash1, trash2;
   char line[kMaxChars];
 
-  for (i=0; i<bands; i++) {
+  for (i=0; i<g_bands; i++) {
     if (fgets(line, sizeof(line), bandpowers)==NULL) printf("Blank line. %s\n", line);
     if (line[0]!='#') {
       if (sscanf(line, "%d %d %d %d %lf %lf %lf", &trash, &garbage, &C_start[i], &C_stop[i], &C[i], &trash1, &trash2)!=7) printf("Error1: %s\n", line);
@@ -54,7 +54,7 @@ int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *d
   double theta, phi;
 
   j = 0;
-  omega = bins*129600.0/(M_PI*nside2npix(nside));
+  g_omega = g_bins*129600.0/(M_PI*nside2npix(nside));
   for (i=0; i<nside2npix(nside); i++) {
     if (healpix[i] >= -1.0) {
       pix2ang_nest(nside, i, &theta, &phi);
@@ -65,7 +65,7 @@ int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *d
       j++;
     }
   }
-  printf("#Area: %lf Pixels: %ld Total Galaxies = %ld\n", omega, bins, (long)total_galaxies);
+  printf("#Area: %lf Pixels: %ld Total Galaxies = %ld\n", g_omega, g_bins, (long)g_total_galaxies);
 
   return 0;
 }
@@ -82,7 +82,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
 
   time(&t0);
 
-  N = LDA = bins;
+  N = LDA = g_bins;
   LWORK = 3*N - 1;
   JOBZ = 'V';  // 'N' for eigenvalues only, 'V' for eigenvalues and eigenvectors.
   UPLO = 'U';  // 'U' for upper triangle of B, 'L' for lower triangle of B.
@@ -98,21 +98,21 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   test4 = (double *)malloc(LDA*N*sizeof(double));
   test5 = (double *)malloc(LDA*N*sizeof(double));
   test6 = (double *)malloc(LDA*N*sizeof(double));
-  sum = (double *)malloc(bins*bins*sizeof(double));
+  sum = (double *)malloc(g_bins*g_bins*sizeof(double));
  
-  for (i=0; i<bins; i++) {
-    for (j=0; j<bins; j++) {
-      sum [i+j*bins]= 0.0;
-      for (l=0; l<bands; l++) {
-	sum[i+j*bins] += signal[i+j*bins+l*bins*bins]*C[l];
+  for (i=0; i<g_bins; i++) {
+    for (j=0; j<g_bins; j++) {
+      sum [i+j*g_bins]= 0.0;
+      for (l=0; l<g_bands; l++) {
+	sum[i+j*g_bins] += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
       }
     }
   }
 
   // A = inverse noise matrix times the signal matrix.  N^-1*S 
-  invert_matrix(noise, bins); 
-  multiply_matrices(noise, sum, B, bins, bins, bins);
-  invert_matrix(noise, bins); 
+  invert_matrix(noise, g_bins); 
+  multiply_matrices(noise, sum, B, g_bins, g_bins, g_bins);
+  invert_matrix(noise, g_bins); 
 
   // Calculate eigenvalues and eigenvectors.
   printf("#Calculating  eigenvalues and eigenvectors.\n");
@@ -120,28 +120,28 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   assert(INFO==0);
 
   // Reorder eigenvectors and eigenvalues from ascending to descending.
-  for (i=0; i<bins; i++) {
+  for (i=0; i<g_bins; i++) {
     test3[i] = W[i];
-    for (j=0; j<bins; j++) {
-      test4[j+i*bins] = B[j+i*bins];
+    for (j=0; j<g_bins; j++) {
+      test4[j+i*g_bins] = B[j+i*g_bins];
     }
   }
-  for (i=0; i<bins; i++) {
-    W[i] = test3[bins-1-i];
-    for (j=0; j<bins; j++) {
-      B[j+i*bins] = test4[j+(bins-1-i)*bins];
+  for (i=0; i<g_bins; i++) {
+    W[i] = test3[g_bins-1-i];
+    for (j=0; j<g_bins; j++) {
+      B[j+i*g_bins] = test4[j+(g_bins-1-i)*g_bins];
     }
     total_snr += W[i];
   }
 
   // Renormalizing so that Bt*N*B = 1.
-  for (j=0; j<bins; j++) {
-    for (i=0; i<bins; i++) {
-      B[i+j*bins] = B[i+j*bins]/sqrt(noise[j+j*bins]);
+  for (j=0; j<g_bins; j++) {
+    for (i=0; i<g_bins; i++) {
+      B[i+j*g_bins] = B[i+j*g_bins]/sqrt(noise[j+j*g_bins]);
     }
   }
 
-  matrix_transpose(B, Bt, bins, bins);
+  matrix_transpose(B, Bt, g_bins, g_bins);
 
   printf("#Printing out eigenvalues.\n");
   fprintf(output_KL, "#Printing out eigenvalues.\n");
@@ -156,22 +156,22 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
 
   B_prime = (double *)malloc(LDA*k*sizeof(double));
   B_primet = (double *)malloc(LDA*k*sizeof(double));
-  test7 = (double *)malloc(k*k*bands*sizeof(double));
+  test7 = (double *)malloc(k*k*g_bands*sizeof(double));
 
   // Create B_prime out of the leftmost columns of B, corresponding to eigenvalues greater than 1.
   for (i=0; i<k; i++) {
-    for (j=0; j<bins; j++) {
-      B_prime[j+i*bins] = B[j+i*bins];
+    for (j=0; j<g_bins; j++) {
+      B_prime[j+i*g_bins] = B[j+i*g_bins];
     }
   }
 
-  matrix_transpose(B_prime, B_primet, bins, k);
+  matrix_transpose(B_prime, B_primet, g_bins, k);
 
   // KL compress the data vector.
   printf("#Printing out new data vector y\n");
   fprintf(output_KL, "#Printing out new data vector y\n");
-  multiply_matrices(B_primet, overdensity, test1, k, bins, 1);  
-  for (i=0; i<bins; i++) {
+  multiply_matrices(B_primet, overdensity, test1, k, g_bins, 1);  
+  for (i=0; i<g_bins; i++) {
     overdensity[i] = 0.0;
   }
   for (i=0; i<k; i++) {
@@ -181,9 +181,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   }
   
   // KL compress the noise matrix.
-  multiply_matrices(B_primet, noise, test5, k, bins, bins);  
-  multiply_matrices(test5, B_prime, test6, k, bins, k);
-  for (i=0; i<bins*bins; i++) {
+  multiply_matrices(B_primet, noise, test5, k, g_bins, g_bins);  
+  multiply_matrices(test5, B_prime, test6, k, g_bins, k);
+  for (i=0; i<g_bins*g_bins; i++) {
     noise[i] = 0.0;
   }
   for (i=0; i<k*k; i++) {
@@ -191,26 +191,26 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   }
 
   // KL compress the P matrices, denoted here by signal.
-  for (l=0; l<bands; l++) {
-    multiply_matrices(B_primet, &signal[l*bins*bins], test5, k, bins, bins);  
-    multiply_matrices(test5, B_prime, &test7[l*k*k], k, bins, k);
+  for (l=0; l<g_bands; l++) {
+    multiply_matrices(B_primet, &signal[l*g_bins*g_bins], test5, k, g_bins, g_bins);  
+    multiply_matrices(test5, B_prime, &test7[l*k*k], k, g_bins, k);
   }
 
-  for (i=0; i<bins*bins*bands; i++) {
+  for (i=0; i<g_bins*g_bins*g_bands; i++) {
     signal[i] = 0;
   }
-  for (i=0; i<k*k*bands; i++) {
+  for (i=0; i<k*k*g_bands; i++) {
     signal[i] = test7[i];
   }
 
-  // Reset bins to the number of modes with SNR > 1.0
-  bins = k;
-  printf("#New bins = %ld\n", k);
+  // Reset g_bins to the number of modes with SNR > 1.0
+  g_bins = k;
+  printf("#New g_bins = %ld\n", k);
 
   // Recalculate the data_covariance matrix based on new data vector.
-  for (j=0; j<bins; j++) {
-    for (i=0; i<bins; i++) {
-      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
+  for (j=0; j<g_bins; j++) {
+    for (i=0; i<g_bins; i++) {
+      data_covariance[i+j*g_bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Covariance matrix calculated from data.\n");
@@ -234,7 +234,7 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   calculate_difference(signal, model_covariance, data_covariance, noise, difference, C);
   
   // Invert the model covariance matrix, result is saved in model_covariance. 
-  inversetime += invert_matrix(model_covariance, bins);
+  inversetime += invert_matrix(model_covariance, g_bins);
   
   // Find the products of the model covariance matrix and derivative of the covariance matrix with respect to the bandpowers. 
   multiplicationtime += calculate_products(model_covariance, signal, A, B, average, difference);
@@ -246,7 +246,7 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   print_Fisher(F, iteration, output_Fisher);
   
   // Invert the Fisher matrix. 
-  invert_matrix(F, bands);
+  invert_matrix(F, g_bands);
   
   // Recalculate the C_l. 
   calculate_KL_C(C, C_change, F, average, output_Window);
@@ -263,11 +263,11 @@ int calculate_Healpix_covariance(double *cos_angle, double *noise, double *data_
 {
   long i, j;
 
-  for (j=0; j<bins; j++) {
-    for (i=0; i<bins; i++) {
-      cos_angle[i+j*bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
-      noise[i+j*bins] = (i==j) ? (1.0*omega)/(1.0*total_galaxies)+KLargeNumber : KLargeNumber;
-      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
+  for (j=0; j<g_bins; j++) {
+    for (i=0; i<g_bins; i++) {
+      cos_angle[i+j*g_bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
+      noise[i+j*g_bins] = (i==j) ? (1.0*g_omega)/(1.0*g_total_galaxies)+KLargeNumber : KLargeNumber;
+      data_covariance[i+j*g_bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Covariance matrix calculated from data.\n");
@@ -285,11 +285,11 @@ double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_
 
   printf("#Calculating signal matrix.\n");
   time(&t0);
-#pragma omp parallel for shared(bands, bins, signal, C_start, C_stop, cos_angle) private(l, j, i, k)
+#pragma omp parallel for shared(g_bands, g_bins, signal, C_start, C_stop, cos_angle) private(l, j, i, k)
   for (z=0; z<kNumThreads; z++) {
-    for (i=z; i<(bands*bins*bins); i+=kNumThreads) {
-      j = i%(bins*bins);
-      l = i/(bins*bins);
+    for (i=z; i<(g_bands*g_bins*g_bins); i+=kNumThreads) {
+      j = i%(g_bins*g_bins);
+      l = i/(g_bins*g_bins);
       signal[i] = 0.0;
       for (k=C_start[l]; k<=C_stop[l]; k++) {
 	signal[i] += ((2.0*k+1.0)/(2.0*k*(k+1)))*Legendre(cos_angle[j], k);
@@ -307,7 +307,7 @@ int print_signal(FILE *output_signal, double *signal)
 {
   long i;
 
-  for (i=0; i<(bands*bins*bins); i++) {
+  for (i=0; i<(g_bands*g_bins*g_bins); i++) {
     fprintf(output_signal, "%lf\n", signal[i]);
   }
   printf("#Done printing signal matrix.\n");  
@@ -321,14 +321,14 @@ int calculate_difference(double *signal, double *model_covariance, double *data_
   long i, j, l;
   double sum;
 
-  for (j=0; j<bins; j++) {
-    for (i=0; i<bins; i++) {
+  for (j=0; j<g_bins; j++) {
+    for (i=0; i<g_bins; i++) {
       sum = 0.0;
-      for (l=0; l<bands; l++) {
-	sum += signal[i+j*bins+l*bins*bins]*C[l];
+      for (l=0; l<g_bands; l++) {
+	sum += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
       }
-      model_covariance[i+j*bins] = sum+noise[i+j*bins];
-      difference[i+j*bins] = data_covariance[i+j*bins]-noise[i+j*bins];
+      model_covariance[i+j*g_bins] = sum+noise[i+j*g_bins];
+      difference[i+j*g_bins] = data_covariance[i+j*g_bins]-noise[i+j*g_bins];
     }
   }
   
@@ -345,16 +345,16 @@ double calculate_products(double *model_covariance, double *signal, double *A, d
   char TRANSA, TRANSB;
   time_t t0, t1;
 
-  M = N = K = LDA = LDB = LDC = bins;
+  M = N = K = LDA = LDB = LDC = g_bins;
   ALPHA = 1.0;
   BETA = 0.0;
   TRANSA = TRANSB = 'N';
 
   time(&t0);
-  for (l=0; l<bands; l++) {
-    dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, model_covariance, &LDA, &signal[l*bins*bins], &LDB, &BETA, &A[l*bins*bins], &LDC);
-    dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, &A[l*bins*bins], &LDA, model_covariance, &LDB, &BETA, &B[l*bins*bins], &LDC);
-    average[l] = trace_multiply(difference, &B[l*bins*bins], bins, bins);
+  for (l=0; l<g_bands; l++) {
+    dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, model_covariance, &LDA, &signal[l*g_bins*g_bins], &LDB, &BETA, &A[l*g_bins*g_bins], &LDC);
+    dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, &A[l*g_bins*g_bins], &LDA, model_covariance, &LDB, &BETA, &B[l*g_bins*g_bins], &LDC);
+    average[l] = trace_multiply(difference, &B[l*g_bins*g_bins], g_bins, g_bins);
   }
   time(&t1);
   multiplicationtime = difftime(t1, t0);
@@ -368,10 +368,10 @@ int calculate_Fisher(double *F, double *A)
 {
   int l, l_prime;
 
-  for (l=0; l<bands; l++) {
+  for (l=0; l<g_bands; l++) {
     for (l_prime=0; l_prime<=l; l_prime++) {
-      F[l+l_prime*bands] = 0.5*trace_multiply(&A[l*bins*bins], &A[l_prime*bins*bins], bins, bins);
-      F[l_prime+l*bands] = F[l+l_prime*bands];
+      F[l+l_prime*g_bands] = 0.5*trace_multiply(&A[l*g_bins*g_bins], &A[l_prime*g_bins*g_bins], g_bins, g_bins);
+      F[l_prime+l*g_bands] = F[l+l_prime*g_bands];
     }
   }
 
@@ -384,10 +384,10 @@ int print_Fisher(double *F, int iteration, FILE *output_Fisher)
   int l, l_prime;
 
   printf("#Printing out Fisher Information matrix for iteration %d.\n", iteration);
-  for (l=0; l<bands; l++) {
-    for (l_prime=0; l_prime<bands; l_prime++) {
-      printf("%e ", F[l+l_prime*bands]);
-      fprintf(output_Fisher, "%e ", F[l+l_prime*bands]);
+  for (l=0; l<g_bands; l++) {
+    for (l_prime=0; l_prime<g_bands; l_prime++) {
+      printf("%e ", F[l+l_prime*g_bands]);
+      fprintf(output_Fisher, "%e ", F[l+l_prime*g_bands]);
     }
     printf("\n");
     fprintf(output_Fisher, "\n");
@@ -405,50 +405,50 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   int l, l_prime, hold;
   double sum, *invsqrtF, *A, *B, *D, *W;
 
-  invsqrtF = (double *)malloc(bands*bands*sizeof(double));
-  A = (double *)malloc(bands*bands*sizeof(double));
-  B = (double *)malloc(bands*bands*sizeof(double));
-  D = (double *)malloc(bands*bands*sizeof(double));
-  W = (double *)malloc(bands*bands*sizeof(double));
+  invsqrtF = (double *)malloc(g_bands*g_bands*sizeof(double));
+  A = (double *)malloc(g_bands*g_bands*sizeof(double));
+  B = (double *)malloc(g_bands*g_bands*sizeof(double));
+  D = (double *)malloc(g_bands*g_bands*sizeof(double));
+  W = (double *)malloc(g_bands*g_bands*sizeof(double));
 
-  matrix_square_root(F, invsqrtF, bands);
-  invert_matrix(F, bands);
-  multiply_matrices(invsqrtF, F, A, bands, bands, bands); // A = F^1/2
+  matrix_square_root(F, invsqrtF, g_bands);
+  invert_matrix(F, g_bands);
+  multiply_matrices(invsqrtF, F, A, g_bands, g_bands, g_bands); // A = F^1/2
 
-  for (l_prime=0; l_prime<bands; l_prime++) {
+  for (l_prime=0; l_prime<g_bands; l_prime++) {
     sum = 0.0;
-    for (l=0; l<bands; l++) {
-      sum += A[l_prime+l*bands];
+    for (l=0; l<g_bands; l++) {
+      sum += A[l_prime+l*g_bands];
     }
-    for (l=0; l<bands; l++) {
-      W[l_prime+l*bands] = A[l_prime+l*bands]/sum;
+    for (l=0; l<g_bands; l++) {
+      W[l_prime+l*g_bands] = A[l_prime+l*g_bands]/sum;
     }  
   }
 
-  invert_matrix(A, bands);
-  multiply_matrices(W, A, D, bands, bands, bands); // D = WF^-1/2
-  invert_matrix(A, bands);
-  multiply_matrices(D, invsqrtF, B, bands, bands, bands);
-  multiply_matrices(B, F, W, bands, bands, bands);
-  invert_matrix(F, bands);
+  invert_matrix(A, g_bands);
+  multiply_matrices(W, A, D, g_bands, g_bands, g_bands); // D = WF^-1/2
+  invert_matrix(A, g_bands);
+  multiply_matrices(D, invsqrtF, B, g_bands, g_bands, g_bands);
+  multiply_matrices(B, F, W, g_bands, g_bands, g_bands);
+  invert_matrix(F, g_bands);
 
   printf("#Printing out Window matrix.\n");  
-  for (l_prime=0; l_prime<bands; l_prime++) {
-    for (l=0; l<bands; l++) {
-      printf("%lf ", W[l*bands+l_prime]);
-      fprintf(output_Window, "%lf ", W[l*bands+l_prime]);
+  for (l_prime=0; l_prime<g_bands; l_prime++) {
+    for (l=0; l<g_bands; l++) {
+      printf("%lf ", W[l*g_bands+l_prime]);
+      fprintf(output_Window, "%lf ", W[l*g_bands+l_prime]);
     }
     printf("\n");
     fprintf(output_Window, "\n");
   }
 
   hold = 0;
-  for (l=0; l<bands; l++) {
+  for (l=0; l<g_bands; l++) {
     C_change[l] = 0.0;
-    for (l_prime = 0; l_prime<bands; l_prime++) {
-      C_change[l] += 0.5*B[l+l_prime*bands]*average[l_prime];
+    for (l_prime = 0; l_prime<g_bands; l_prime++) {
+      C_change[l] += 0.5*B[l+l_prime*g_bands]*average[l_prime];
     }
-    if (fabs(C_change[l]) > fabs(sqrt(F[l+l*bands]))) hold += 1;
+    if (fabs(C_change[l]) > fabs(sqrt(F[l+l*g_bands]))) hold += 1;
     C[l] = C_change[l];
   }
 
@@ -461,9 +461,9 @@ int print_values(double *C, int *C_start, int *C_stop, double *C_change, double 
   int l;
 
   printf("#All C[l] have been recalculated for iteration = %d.\n", iteration);
-  for (l=0; l<bands; l++) {
-    printf("%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*bands]), C_change[l]);
-    fprintf(output_C, "%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*bands]), C_change[l]);
+  for (l=0; l<g_bands; l++) {
+    printf("%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*g_bands]), C_change[l]);
+    fprintf(output_C, "%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*g_bands]), C_change[l]);
   }
 
   return 0;
