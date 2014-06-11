@@ -6,7 +6,7 @@ int count_usable_pixels(FILE *objects, int number_lines)
 {
   int i;
   double lam, et, trash1, trash2, pixel_area;
-  char line[MAXCHARS];
+  char line[kMaxChars];
 
   bins = 0;
   for (i=0; i<number_lines; i++) {
@@ -30,7 +30,7 @@ long count_Healpix_pixels(char *input_healpix, float *healpix)
 {
   int i;
   long NSIDE;
-  char *trash[MAXCHARS], name[MAXCHARS]; // ordering[10], coords[1];
+  char *trash[kMaxChars], name[kMaxChars]; // ordering[10], coords[1];
 
   // Strip the directory structure from the filename if present
   if (strrchr(input_healpix, '/')!=NULL) {
@@ -59,7 +59,7 @@ long count_cross_Healpix_pixels(char *input_healpix, float *healpix_1, float *he
 {
   int i;
   long NSIDE;
-  char *trash[MAXCHARS], name[MAXCHARS]; // ordering[10], coords[1];
+  char *trash[kMaxChars], name[kMaxChars]; // ordering[10], coords[1];
 
   // Strip the directory structure from the filename if present
   if (strrchr(input_healpix, '/')!=NULL) {
@@ -88,7 +88,7 @@ int read_bandpower_file(FILE *bandpowers, double *C, int *C_start, int *C_stop)
 {
   int i, trash, garbage;
   double trash1, trash2;
-  char line[MAXCHARS];
+  char line[kMaxChars];
 
   for (i=0; i<bands; i++) {
     if (fgets(line, sizeof(line), bandpowers)==NULL) printf("Blank line. %s\n", line);
@@ -105,7 +105,7 @@ int read_SDSSpix_file(FILE *objects, double *bin_number, double *solid_angle, do
 {
   long i;
   double pixel_area;
-  char line[MAXCHARS];
+  char line[kMaxChars];
 
   total_galaxies = 0.0;
   omega = 0.0;
@@ -135,8 +135,8 @@ int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *d
   for (i=0; i<nside2npix(nside); i++) {
     if (healpix[i] >= -1.0) {
       pix2ang_nest(nside, i, &theta, &phi);
-      ra[j] = phi/d2r;
-      dec[j] = 90.0-theta/d2r;
+      ra[j] = phi/kDegreeToRadian;
+      dec[j] = 90.0-theta/kDegreeToRadian;
       if (ra[j] < 0.0) ra[j] += 360.0;
       overdensity[j] = healpix[i];
       j++;
@@ -158,8 +158,8 @@ int read_cross_Healpix_file(double *overdensity, float *healpix_1, float *healpi
   for (i=0; i<nside2npix(nside); i++) {
     if ((healpix_1[i]>=-1.0)&&(healpix_2[i]>=-1.0)) {
       pix2ang_nest(nside, i, &theta, &phi);
-      ra[j] = phi/d2r;
-      dec[j] = 90.0-theta/d2r;
+      ra[j] = phi/kDegreeToRadian;
+      dec[j] = 90.0-theta/kDegreeToRadian;
       if (ra[j] < 0.0) ra[j] += 360.0;
       overdensity[j] = healpix_1[i];
       j++;
@@ -263,8 +263,8 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   printf("#Printing out eigenvalues.\n");
   fprintf(output_KL, "#Printing out eigenvalues.\n");
   while (W[k] > 1.0) {
-  //  printf("#Keeping %lf%% of the total signal to noise.\n", 100.0*SNR_RETAINED);
-  //  while (signal_sum < total_snr*SNR_RETAINED) {
+  //  printf("#Keeping %lf%% of the total signal to noise.\n", 100.0*kSnrRetained);
+  //  while (signal_sum < total_snr*kSnrRetained) {
     printf("%ld %lf\n", k, W[k]);
     fprintf(output_KL, "%ld %lf\n", k, W[k]);
     signal_sum += W[k];
@@ -327,7 +327,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   // Recalculate the data_covariance matrix based on new data vector.
   for (j=0; j<bins; j++) {
     for (i=0; i<bins; i++) {
-      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-contamination)*(1.0-contamination));
+      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Covariance matrix calculated from data.\n");
@@ -394,9 +394,9 @@ int calculate_covariance(double *cos_angle, double *noise, double *data_covarian
 
   for (j=0; j<bins; j++) {
     for (i=0; i<bins; i++) {
-      cos_angle[i+j*bins] = sin(dec[i]*d2r)*sin(dec[j]*d2r)+cos(dec[i]*d2r)*cos(dec[j]*d2r)*cos((ra[i]-ra[j])*d2r);
-      noise[i+j*bins] = (i==j) ? (1.0*omega)/(1.0*total_galaxies)+LARGE_NUMBER : LARGE_NUMBER;
-      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-contamination)*(1.0-contamination));
+      cos_angle[i+j*bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
+      noise[i+j*bins] = (i==j) ? (1.0*omega)/(1.0*total_galaxies)+KLargeNumber : KLargeNumber;
+      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Covariance matrix calculated from data.\n");
@@ -411,9 +411,9 @@ int calculate_Healpix_covariance(double *cos_angle, double *noise, double *data_
 
   for (j=0; j<bins; j++) {
     for (i=0; i<bins; i++) {
-      cos_angle[i+j*bins] = sin(dec[i]*d2r)*sin(dec[j]*d2r)+cos(dec[i]*d2r)*cos(dec[j]*d2r)*cos((ra[i]-ra[j])*d2r);
-      noise[i+j*bins] = (i==j) ? (1.0*omega)/(1.0*total_galaxies)+LARGE_NUMBER : LARGE_NUMBER;
-      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-contamination)*(1.0-contamination));
+      cos_angle[i+j*bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
+      noise[i+j*bins] = (i==j) ? (1.0*omega)/(1.0*total_galaxies)+KLargeNumber : KLargeNumber;
+      data_covariance[i+j*bins] = overdensity[i]*overdensity[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Covariance matrix calculated from data.\n");
@@ -428,9 +428,9 @@ int calculate_cross_covariance(double *cos_angle, double *noise, double *data_co
 
   for (j=0; j<bins; j++) {
     for (i=0; i<bins; i++) {
-      cos_angle[i+j*bins] = sin(dec[i]*d2r)*sin(dec[j]*d2r)+cos(dec[i]*d2r)*cos(dec[j]*d2r)*cos((ra[i]-ra[j])*d2r);
+      cos_angle[i+j*bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
       noise[i+j*bins] = 0.0;
-      data_covariance[i+j*bins] = overdensity1[i]*overdensity2[j]/((1.0-contamination)*(1.0-contamination));
+      data_covariance[i+j*bins] = overdensity1[i]*overdensity2[j]/((1.0-kContamination)*(1.0-kContamination));
     }
   } 
   printf("#Cross covariance matrix calculated from data.\n");
@@ -445,7 +445,7 @@ int calculate_cos_angle(double *cos_angle, double *ra, double *dec)
 
   for (j=0; j<bins; j++) {
     for (i=0; i<bins; i++) {
-      cos_angle[i+j*bins] = sin(dec[i]*d2r)*sin(dec[j]*d2r)+cos(dec[i]*d2r)*cos(dec[j]*d2r)*cos((ra[i]-ra[j])*d2r);
+      cos_angle[i+j*bins] = sin(dec[i]*kDegreeToRadian)*sin(dec[j]*kDegreeToRadian)+cos(dec[i]*kDegreeToRadian)*cos(dec[j]*kDegreeToRadian)*cos((ra[i]-ra[j])*kDegreeToRadian);
     }
   } 
   printf("#Cos_angle matrix calculated from data.\n");
@@ -463,8 +463,8 @@ double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_
   printf("#Calculating signal matrix.\n");
   time(&t0);
 #pragma omp parallel for shared(bands, bins, signal, C_start, C_stop, cos_angle) private(l, j, i, k)
-  for (z=0; z<num_proc; z++) {
-    for (i=z; i<(bands*bins*bins); i+=num_proc) {
+  for (z=0; z<kNumThreads; z++) {
+    for (i=z; i<(bands*bins*bins); i+=kNumThreads) {
       j = i%(bins*bins);
       l = i/(bins*bins);
       signal[i] = 0.0;
@@ -495,7 +495,7 @@ int print_signal(FILE *output_signal, double *signal)
 int read_signal(FILE *input_signal, double *signal)
 {
   long i;
-  char line[MAXCHARS];
+  char line[kMaxChars];
   time_t t0, t1;
 
   printf("#Reading signal matrix.\n");

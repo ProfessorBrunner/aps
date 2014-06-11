@@ -5,7 +5,7 @@ int object_count(FILE *objects, int n)
 	Ignore lines beginning with #. */
 {
   int number_lines;
-  char line[MAXCHARS];
+  char line[kMaxChars];
   
   number_lines = 0;
   while (fgets(line, sizeof(line), objects)!=NULL)

@@ -8,15 +8,15 @@
 #include "omp.h"
 #include "chealpix.h"
 
-#define SNR_RETAINED 0.95              // fraction of signal to noise retained.
-#define max_iter 3                     // max allowed iterations for C
-#define d2r (M_PI/180.0)               // conversion factor for degrees to radians
-#define r2d (180.0/M_PI)               // conversion factor for radians to degrees
-#define MAXCHARS 10000                 // max allowed characters per object
-#define lines_per_object 1             // lines per object
-#define contamination 0.0              // stellar contamination
-#define num_proc 16                    // number of processors
-#define LARGE_NUMBER 1000000.0         // Large number to remove the mean mode in KL compression
+#define kSnrRetained 0.95              // fraction of signal to noise retained.
+#define kMaxIter 3                     // max allowed iterations for C
+#define kDegreeToRadian (M_PI/180.0)   // conversion factor for degrees to radians
+#define kRadianToDegree (180.0/M_PI)   // conversion factor for radians to degrees
+#define kMaxChars 10000                // max allowed characters per object
+#define kLinesPerObject 1              // lines per object
+#define kContamination 0.0             // stellar contamination
+#define kNumThreads 16                 // number of processors
+#define KLargeNumber 1000000.0         // Large number to remove the mean mode in KL compression
 
 // Defined in *_spectrum.c
 extern long bins;

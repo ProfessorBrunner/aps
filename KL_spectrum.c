@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   float *healpix;
   double *overdensity, *data_covariance, *noise, *cos_angle, *difference, *A, *B, *C, *C_change; 
   double *ra, *dec, *F, *average, *model_covariance, *signal, signaltime, iterationtime = 0;
-  char ordering[10], coords[1], filename[MAXCHARS], name[MAXCHARS];
+  char ordering[10], coords[1], filename[kMaxChars], name[kMaxChars];
   time_t t0, t1, t2, t3;
   FILE *objects, *bandpowers, *output_KL, *output_C, *output_Fisher, *output_Window;
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   bandpowers = fopen(argv[2], "r");
   assert(bandpowers!=NULL);
   printf("#Using %s as the input bandpower file.\n", argv[2]);
-  bands = object_count(bandpowers, lines_per_object);
+  bands = object_count(bandpowers, kLinesPerObject);
 
   // Strip the directory structure from the filename if present
   if (strrchr(argv[2], '/')!=NULL) {
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
   assert(difference!=NULL);
 
   // Begin iterative process to find C_l. 
-  for (n=1; n<=max_iter; n++) {
+  for (n=1; n<=kMaxIter; n++) {
 
     // Calculate the C_l and Fisher matrix from the signal and covariance matrices
     time(&t2);
