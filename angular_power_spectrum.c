@@ -1,8 +1,8 @@
 #include "angular_power_spectrum.h"
 //#include "new_angular_power_spectrum.h"
 
+/// A function to count the pixels with non-zero area in the objects file.  
 int count_usable_pixels(FILE *objects, int number_lines)
-     // A function to count the pixels with non-zero area in the objects file.  
 {
   int i;
   double lam, et, trash1, trash2, pixel_area;
@@ -25,8 +25,8 @@ int count_usable_pixels(FILE *objects, int number_lines)
   return 0;
 }
 
+/// Open the Healpix file and count the pixels and galaxies.
 long count_Healpix_pixels(char *input_healpix, float *healpix)
-     // Open the Healpix file and count the pixels and galaxies.
 {
   int i;
   long NSIDE;
@@ -54,8 +54,8 @@ long count_Healpix_pixels(char *input_healpix, float *healpix)
   return NSIDE;
 }
 
+/// Open the Healpix file and count the pixels and galaxies.
 long count_cross_Healpix_pixels(char *input_healpix, float *healpix_1, float *healpix_2)
-     // Open the Healpix file and count the pixels and galaxies.
 {
   int i;
   long NSIDE;
@@ -83,8 +83,8 @@ long count_cross_Healpix_pixels(char *input_healpix, float *healpix_1, float *he
   return NSIDE;
 }
 
+/// A function to read the bandpowers file, and store the results in the appropriate arrays. 
 int read_bandpower_file(FILE *bandpowers, double *C, int *C_start, int *C_stop)
-     // A function to read the bandpowers file, and store the results in the appropriate arrays. 
 {
   int i, trash, garbage;
   double trash1, trash2;
@@ -100,8 +100,8 @@ int read_bandpower_file(FILE *bandpowers, double *C, int *C_start, int *C_stop)
   return 0;
 }
 
+/// A function to read the SDSSpix objects file and store the results in the appropriate arrays. 
 int read_SDSSpix_file(FILE *objects, double *bin_number, double *solid_angle, double *ra, double *dec)
-     // A function to read the SDSSpix objects file and store the results in the appropriate arrays. 
 {
   long i;
   double pixel_area;
@@ -124,8 +124,8 @@ int read_SDSSpix_file(FILE *objects, double *bin_number, double *solid_angle, do
   return 0;
 }
 
+/// A function to read the healpix map and write it into the overdensity array.
 int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *dec, long nside)
-     // A function to read the healpix map and write it into the overdensity array.
 {
   long i, j;
   double theta, phi;
@@ -147,8 +147,8 @@ int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *d
   return 0;
 }
 
+/// A function to read the healpix map and write it into the overdensity array.
 int read_cross_Healpix_file(double *overdensity, float *healpix_1, float *healpix_2, double *ra, double *dec, long nside)
-     // A function to read the healpix map and write it into the overdensity array.
 {
   long i, j;
   double theta, phi;
@@ -170,9 +170,9 @@ int read_cross_Healpix_file(double *overdensity, float *healpix_1, float *healpi
   return 0;
 }
 
+/** A function to calculate the signal and covariance matrices needed for the iterative process. 
+  *	Returns the time taken to generate the signal matrix.  */
 double calculate_matrices(double *bin_number, double *solid_angle, double *ra, double *dec, double *overdensity, double *cos_angle, double *noise, double *data_covariance, double *signal, int *C_start, int *C_stop)
-     // A function to calculate the signal and covariance matrices needed for the iterative process. 
-     //	Returns the time taken to generate the signal matrix. 
 {
   double signaltime;
 
@@ -188,8 +188,8 @@ double calculate_matrices(double *bin_number, double *solid_angle, double *ra, d
   return signaltime;
 }
 
+/// A function to do KL compression on input data vectors and matrices.
 int KL_compression(double *overdensity, double *signal, double *noise, double *data_covariance, double *C, FILE *output_KL)
-     // A function to do KL compression on input data vectors and matrices.
 {
   int i, j, l, INFO, LDA, LWORK, N;
   long k=0;
@@ -339,9 +339,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   return 0;
 }
 
+/** A function to estimate the angular power spectrum given the signal and covariance matrices.
+  * Returns the time taken by the inversion and matrix multiplication steps. */
 double estimate_C(double *signal, double *model_covariance, double *data_covariance, double *noise, double *difference, double *average, double *A, double *B, double *F, double *C, int *C_start, int *C_stop, double *C_change, int iteration, FILE *output_C, FILE *output_Fisher, FILE *output_Window)
-     // A function to estimate the angular power spectrum given the signal and covariance matrices.
-     //	Returns the time taken by the inversion and matrix multiplication steps. 
 {
   double inversetime = 0.0, multiplicationtime = 0.0;
 
@@ -374,8 +374,8 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   return (multiplicationtime+inversetime);
 }
 
+/// A function to calculate the overdensity from the pixelized galaxy counts and areas. 
 int calculate_overdensity(double *overdensity, double *bin_number, double *solid_angle)
-     // A function to calculate the overdensity from the pixelized galaxy counts and areas. 
 {
   long i;
 
@@ -387,8 +387,8 @@ int calculate_overdensity(double *overdensity, double *bin_number, double *solid
   return 0;
 }
 
+/// A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 int calculate_covariance(double *cos_angle, double *noise, double *data_covariance, double *ra, double *dec, double *solid_angle, double *overdensity)
-     // A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 {
   long i, j;
 
@@ -404,8 +404,8 @@ int calculate_covariance(double *cos_angle, double *noise, double *data_covarian
   return 0;
 }
 
+/// A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 int calculate_Healpix_covariance(double *cos_angle, double *noise, double *data_covariance, double *ra, double *dec, double *overdensity)
-     // A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 {
   long i, j;
 
@@ -421,8 +421,8 @@ int calculate_Healpix_covariance(double *cos_angle, double *noise, double *data_
   return 0;
 }
 
+/// A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 int calculate_cross_covariance(double *cos_angle, double *noise, double *data_covariance, double *ra, double *dec, double *overdensity1, double *overdensity2)
-     // A function to calulate the data and noise covariance matrices, as well as the cos_angle matrix. 
 {
   long i, j;
 
@@ -438,8 +438,8 @@ int calculate_cross_covariance(double *cos_angle, double *noise, double *data_co
   return 0;
 }
 
+/// A function to calulate the cos_angle matrix. 
 int calculate_cos_angle(double *cos_angle, double *ra, double *dec)
-     // A function to calulate the cos_angle matrix. 
 {
   long i, j;
 
@@ -453,8 +453,8 @@ int calculate_cos_angle(double *cos_angle, double *ra, double *dec)
   return 0;
 }
 
+///  A parallelized function to calculate the signal matrix using the cos_angle matrix and bandpower limits. 
 double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_stop)
-     //  A parallelized function to calculate the signal matrix using the cos_angle matrix and bandpower limits. 
 {
   long i, j, k, l, z;
   double signaltime;
@@ -510,8 +510,8 @@ int read_signal(FILE *input_signal, double *signal)
   return 0;
 }
 
+/// A function to calculate the difference of the data and model covariance matrices. 
 int calculate_difference(double *signal, double *model_covariance, double *data_covariance, double *noise, double *difference, double *C)
-     // A function to calculate the difference of the data and model covariance matrices. 
 {
   long i, j, l;
   double sum;
@@ -530,10 +530,10 @@ int calculate_difference(double *signal, double *model_covariance, double *data_
   return 0;
 }
 
+/**  A function to calculate the product of the derivative of the signal matrix with the model covariance matrix.
+  *	Also calculates the product of the above result with another factor of the model covariance and the traces of the 
+  *	multiplications of the first results. Returns the time it takes to do these multiplications. */
 double calculate_products(double *model_covariance, double *signal, double *A, double *B, double *average, double *difference)
-     // A function to calculate the product of the derivative of the signal matrix with the model covariance matrix.
-     //	Also calculates the product of the above result with another factor of the model covariance and the traces of the 
-     //	multiplications of the first results. Returns the time it takes to do these multiplications. 
 {
   int l, LDA, LDB, LDC, M, N, K;
   double ALPHA, BETA, multiplicationtime;
@@ -558,8 +558,8 @@ double calculate_products(double *model_covariance, double *signal, double *A, d
   return multiplicationtime;
 }
 
+/// A function to calculate the Fisher matrix. 
 int calculate_Fisher(double *F, double *A)
-     // A function to calculate the Fisher matrix. 
 {
   int l, l_prime;
 
@@ -573,8 +573,8 @@ int calculate_Fisher(double *F, double *A)
   return 0;
 }
 
+/// A function to print the Fisher matrix to stdout. 
 int print_Fisher(double *F, int iteration, FILE *output_Fisher)
-     // A function to print the Fisher matrix to stdout. 
 {
   int l, l_prime;
 
@@ -592,9 +592,9 @@ int print_Fisher(double *F, int iteration, FILE *output_Fisher)
   return 0;
 }
 
+/** A function to calculate the C_l from the Fisher matrix. Returns non-zero 
+  *	if the change in C_l are greater than the errors. */
 int calculate_C(double *C, double *C_change, double *F, double *average)
-     // A function to calculate the C_l from the Fisher matrix. Returns non-zero 
-     //	if the change in C_l are greater than the errors. 
 {
   int l, l_prime, hold;
 
@@ -611,9 +611,9 @@ int calculate_C(double *C, double *C_change, double *F, double *average)
   return hold;
 }
 
+/** A function to calculate the C_l from the Fisher matrix. Returns non-zero 
+  * if the change in C_l are greater than the errors. */
 int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE *output_Window)
-     // A function to calculate the C_l from the Fisher matrix. Returns non-zero 
-     //	if the change in C_l are greater than the errors. 
 {
   int l, l_prime, hold;
   double sum, *invsqrtF, *A, *B, *D, *W;
@@ -668,8 +668,8 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   return hold;
 }
 
+/// A function to print the C_l values and errors to stdout. 
 int print_values(double *C, int *C_start, int *C_stop, double *C_change, double *F, int iteration, FILE *output_C)
-     // A function to print the C_l values and errors to stdout. 
 {
   int l;
 
