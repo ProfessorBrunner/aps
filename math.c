@@ -23,6 +23,7 @@ double Legendre(double x, int n)
   return 0.0;
 }
 
+
 /** Calculate and return the trace of the matrix multiplication AB, where A is N x P and B is P x N.
   * NOTE: This is for matrices in column major order, which is the standard in Fortran not C. */
 double trace_multiply(double *A, double *B, int N, int P)
@@ -37,32 +38,6 @@ double trace_multiply(double *A, double *B, int N, int P)
       sum += A[i+j*N]*B[j+i*P];
     }
     trace += sum;
-  }
-
-  return trace;
-}
-
-/// Calculate A * B = C where A and B are diagonal square N x N matrices.
-int multiply_diagonal_matrices(double *A, double *B, double *C, int N)
-{
-  int i;
-
-  for (i=0; i<N; i++) {
-    C[i+i*N] = A[i+i*N]*B[i+i*N];
-  }
-
-  return 0;
-}
-
-/// Calculate the trace of N x N matrix A
-double matrix_trace(double *A, int N)
-{
-  int i;
-  double trace;
-
-  trace = 0.0;
-  for (i=0; i<N; i++) {
-    trace += A[i+i*N];
   }
 
   return trace;
@@ -92,28 +67,6 @@ double invert_matrix(double *A, long size)
   return inversetime;
 }
 
-/// Multiplication of two square size by size matrices: AB = C
-double multiply_square_matrices(double *A, double *B, double *C, long size)
-{
-  int LDA, LDB, LDC, M, N, K;
-  double ALPHA, BETA, multiplicationtime;
-  char TRANSA, TRANSB;
-  time_t t0, t1;
-
-  M = N = K = LDA = LDB = LDC = size;
-  ALPHA = 1.0;
-  BETA = 0.0;
-  TRANSA = TRANSB = 'N';
-
-  time(&t0);
-  dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, A, &LDA, B, &LDB, &BETA, C, &LDC);
-  time(&t1);
-  multiplicationtime = difftime(t1, t0);
-  printf("#Done calculating matrix multiplication. Time = %lf seconds.\n", multiplicationtime);
-
-  return multiplicationtime;
-}
-
 /// Multiplication of two matrices of size (MxN) = (MxK)(KxN): C = AB
 double multiply_matrices(double *A, double *B, double *C, long m, long k, long n)
 {
@@ -137,18 +90,6 @@ double multiply_matrices(double *A, double *B, double *C, long m, long k, long n
   printf("#Done calculating matrix multiplication. Time = %lf seconds.\n", multiplicationtime);
 
   return multiplicationtime;
-}
-
-double dot_product(double *A, double *B, long size)
-{
-  long i;
-  double total=0.0;
-
-  for (i=0; i<size; i++) {
-    total += A[i]*B[i];
-  }
-
-  return total;
 }
 
 /// Transpose m x n matrix A into n x m matrix B
