@@ -1,0 +1,32 @@
+#!/bin/csh
+#PBS -l ncpus=32
+#PBS -l walltime=2:00:00
+#PBS -q batch
+#PBS -V
+#PBS -N CL6
+#PBS -o CL6.out
+#PBS -e CL6.err
+#PBD -l CL6.log
+#------------------------------
+# End of embedded QSUB options
+
+#set echo               # echo commands before execution; use for debugging
+
+### cd $SCRATCH
+ja
+
+setenv OMP_NUM_THREADS 32
+setenv MKL_NUM_THREADS 32
+
+
+# Run the OpenMP program with $OMP_NUM_THREADS threads
+# (program reads from input.8.10 and writes to output.8.10)
+
+# Note: see the dplace man page for more information about why "dplace -x6"
+#       is needed
+
+omplace -nt 32  /usr/users/8/mgckind/KL/KL_spectrum /usr/users/8/mgckind/KL/data/128_4145966_big_zphot_0.50_0.60_DES_prob_0.1.fits /usr/users/8/mgckind/KL/data/CL_model0_0.50_0.60_zphot_350_0.1.dat.band
+#omplace -nt 32  /usr/users/8/mgckind/KL/KL_spectrum /usr/users/8/mgckind/KL/data/128_8000000_08_09_zphot_big.fits /usr/users/8/mgckind/KL/data/CL_08_09_zphot_big_band.dat 
+#wait
+
+ja -chlst

@@ -1,0 +1,14 @@
+#calculate_Healpix_covariance	1			  0.04
+#calculate_signal				838			 33.01
+#KL_compression					340			 13.39
+#estimate_C 					136			  5.36
+#estimate_C 					135			  5.32
+#estimate_C 					136			  5.36
+#estimate_C 					136			  5.36
+#estimate_C 					139			  5.47
+#estimate_C 					136			  5.36
+#estimate_C 					136			  5.36
+#estimate_C 					135			  5.32
+#estimate_C 					136			  5.36
+#estimate_C 					135			  5.32
+#TOTAL 							2539		100.00
