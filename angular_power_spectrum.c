@@ -104,7 +104,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
     for (j=0; j<g_bins; j++) {
       sum [i+j*g_bins]= 0.0;
       for (l=0; l<g_bands; l++) {
-	sum[i+j*g_bins] += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
+        sum[i+j*g_bins] += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
       }
     }
   }
@@ -112,7 +112,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   // A = inverse noise matrix times the signal matrix.  N^-1*S 
   invert_matrix(noise, g_bins); 
   multiply_matrices(noise, sum, B, g_bins, g_bins, g_bins);
-  invert_matrix(noise, g_bins); 
+  invert_matrix(noise, g_bins);
 
   // Calculate eigenvalues and eigenvectors.
   printf("#Calculating  eigenvalues and eigenvectors.\n");
@@ -159,6 +159,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   test7 = (double *)malloc(k*k*g_bands*sizeof(double));
 
   // Create B_prime out of the leftmost columns of B, corresponding to eigenvalues greater than 1.
+  // Row major is: row*NUMCOLS + col | i is column, so this is in Column major
   for (i=0; i<k; i++) {
     for (j=0; j<g_bins; j++) {
       B_prime[j+i*g_bins] = B[j+i*g_bins];
@@ -292,7 +293,7 @@ double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_
       l = i/(g_bins*g_bins);
       signal[i] = 0.0;
       for (k=C_start[l]; k<=C_stop[l]; k++) {
-	signal[i] += ((2.0*k+1.0)/(2.0*k*(k+1)))*Legendre(cos_angle[j], k);
+        signal[i] += ((2.0*k+1.0)/(2.0*k*(k+1)))*Legendre(cos_angle[j], k);
       }
     }
   }
@@ -325,7 +326,7 @@ int calculate_difference(double *signal, double *model_covariance, double *data_
     for (i=0; i<g_bins; i++) {
       sum = 0.0;
       for (l=0; l<g_bands; l++) {
-	sum += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
+        sum += signal[i+j*g_bins+l*g_bins*g_bins]*C[l];
       }
       model_covariance[i+j*g_bins] = sum+noise[i+j*g_bins];
       difference[i+j*g_bins] = data_covariance[i+j*g_bins]-noise[i+j*g_bins];
@@ -352,7 +353,10 @@ double calculate_products(double *model_covariance, double *signal, double *A, d
 
   time(&t0);
   for (l=0; l<g_bands; l++) {
+    //A[l*g_bins*g_bins] := model_covariance * signal[l*g_bins*g_bins]
     dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, model_covariance, &LDA, &signal[l*g_bins*g_bins], &LDB, &BETA, &A[l*g_bins*g_bins], &LDC);
+    //B[l*g_bins*g_bins] := A[l*g_bins*g_bins] * model_covariance
+    //B[l*g_bins*g_bins] := model_covariance * signal[l*g_bins*g_bins] * model_covariance
     dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, &A[l*g_bins*g_bins], &LDA, model_covariance, &LDB, &BETA, &B[l*g_bins*g_bins], &LDC);
     average[l] = trace_multiply(difference, &B[l*g_bins*g_bins], g_bins, g_bins);
   }
@@ -370,6 +374,7 @@ int calculate_Fisher(double *F, double *A)
 
   for (l=0; l<g_bands; l++) {
     for (l_prime=0; l_prime<=l; l_prime++) {
+      // F := trace(A[l] * A[l_prime])/2
       F[l+l_prime*g_bands] = 0.5*trace_multiply(&A[l*g_bins*g_bins], &A[l_prime*g_bins*g_bins], g_bins, g_bins);
       F[l_prime+l*g_bands] = F[l+l_prime*g_bands];
     }
