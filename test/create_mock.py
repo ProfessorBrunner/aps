@@ -5,14 +5,36 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import healpy as hp
 import os
+import argparse
 
-Nside=256
+
+##    Get Arguments
+###############################################################################
+
+parser = argparse.ArgumentParser(
+    description='Generate fits and bin files to test APS code.')
+parser.add_argument("catalog", help="Path to catalog.dat.")
+parser.add_argument("data", help="Path to output directory.")
+parser.add_argument("nside", help="Pixels per edge (Power of two).", type=int)
+
+parser.add_argument("-p", "--plot", dest="plot", action="store_true",
+        help="Display plots of data.")
+
+args = parser.parse_args()
+
+if args.data[-1] != '/':
+    args.data = args.data + '/'
+
+is_power_of_two = lambda num: num > 0 and not (num & (num - 1))
+assert is_power_of_two(args.nside)
+
+Nside=args.nside
 npix=12*Nside**2
 
-if not os.path.isdir("../data/"):
-    os.system('mkdir  -p ../data')
+if not os.path.isdir(args.data):
+    os.system('mkdir  -p ' + args.data)
 
-x,y,z,j,j,j=np.loadtxt('catalog.dat',delimiter=',',unpack=True)
+x,y,z,j,j,j=np.loadtxt(args.catalog, delimiter=',', unpack=True)
 x=x-62.5/2
 y=y-62.5/2
 z=z-62.5/2
@@ -76,8 +98,8 @@ plt.ylabel(r'$C_\ell$',fontsize=18)
 plt.legend(loc=0,numpoints=1)
 
 
-hp.write_map('../data/'+str(Nside)+'_'+str(len(x))+'_'+'lcdm.fits',M,nest=True,coord='C')
-hp.write_map('../data/'+str(Nside)+'_'+str(len(x))+'_'+'random.fits',Mr,nest=True,coord='C')
+hp.write_map(args.data+str(Nside)+'_'+str(len(x))+'_'+'lcdm.fits',M,nest=True,coord='C')
+hp.write_map(args.data+str(Nside)+'_'+str(len(x))+'_'+'random.fits',Mr,nest=True,coord='C')
 
 ell3=ell2[1:]
 cl3=cl2[1:]
@@ -87,8 +109,9 @@ index=np.arange(len(ell3))
 ell_min=ell3-1
 ell_max=ell3+1
 
-np.savetxt('../data/CL_'+str(Nside)+'_lcdm.dat',zip(index,ell3,ell_min,ell_max,cl3,cl_err,cl3),fmt='%d %d %d %d %.6f %.6f %.6f')
-np.savetxt('../data/CL_'+str(Nside)+'_random.dat',zip(index,ell3,ell_min,ell_max,cl3,cl_err,cl3),fmt='%d %d %d %d %.6f %.6f %.6f')
+np.savetxt(args.data+'CL_'+str(Nside)+'_lcdm.dat',zip(index,ell3,ell_min,ell_max,cl3,cl_err,cl3),fmt='%d %d %d %d %.6f %.6f %.6f')
+np.savetxt(args.data+'CL_'+str(Nside)+'_random.dat',zip(index,ell3,ell_min,ell_max,cl3,cl_err,cl3),fmt='%d %d %d %d %.6f %.6f %.6f')
 
-plt.show()
+if args.plot:
+    plt.show()
       

@@ -22,7 +22,6 @@ LDFLAGS=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/
 #LDFLAGS=-Wl,-Bstatic -Wl,--start-group -L$(MKLROOT)/lib/intel64  -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -liomp5 -Wl,--end-group -Wl,-Bdynamic
 LDLIBS=-ldl -lpthread -lm -lchealpix -lcfitsio
 
-
 SOURCES=KL_spectrum.c tools.c angular_power_spectrum.c math.c
 LIBS=angular_power_spectrum.h
 
@@ -35,9 +34,39 @@ initialize: .FORCE
 	$(MKLROOT)/bin/mklvars.sh intel64 
 
 #################################################################################
+# Test
+#################################################################################
+
+TEST_NSIDE=8
+FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
+DAT=data/CL_$(TEST_NSIDE)_lcdm.dat
+PROFILE_FLAGS=-pg -g -fno-omit-frame-pointer -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls
+PERF_FLAGS=-lprofiler -ltcmalloc -fno-inline-functions-called-once
+
+test: KL_spectrum  $(FITS) $(DAT)
+	./KL_spectrum $(FITS) $(DAT)
+
+%.fits: data test/create_mock.py
+
+%.dat: data test/create_mock.py
+
+data: .FORCE
+	./test/create_mock.py ./test/catalog.dat ./data $(TEST_NSIDE)
+
+profile: .FORCE
+	$(CC) $(CFLAGS) $(SOURCES) $(LIBS) -o KL_spectrum $(LDFLAGS) $(LDLIBS) $(PROFILE_FLAGS)
+
+gperf: .FORCE $(FITS) $(DAT)
+	$(CC) $(CFLAGS) $(SOURCES) $(LIBS) -o KL_spectrum $(LDFLAGS) $(LDLIBS) $(PERF_FLAGS)
+
+
+#################################################################################
 # Misc
 #################################################################################
 .FORCE:
 
 clean: .FORCE
 	rm KL_spectrum
+
+clean_data: .FORCE
+	rm data/*
