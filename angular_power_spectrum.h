@@ -20,13 +20,13 @@
 
 /* Defined in *_spectrum.c */
 // Total number of usable pixels.
-extern long bins;
+extern long g_bins;
 // Total number of bandpowers.
-extern long bands;
+extern long g_bands;
 // Total area of usable pixels.
-extern double omega;
+extern double g_omega;
 // Total number of galaxies in usable pixels.
-extern double total_galaxies;
+extern double g_total_galaxies;
 
 /*In tools.c*/
 int object_count(FILE *, int);
@@ -76,28 +76,17 @@ void matrix_square_root(double *, double *, long);
  */
 
 
-int count_usable_pixels(FILE *, int);
 long count_Healpix_pixels(char *, float *);
-long count_cross_Healpix_pixels(char *, float *, float *);
 int read_bandpower_file(FILE *, double *, int *, int *);
-int read_SDSSpix_file(FILE *, double *, double *, double *, double *);
 int read_Healpix_file(double *, float *, double *, double *, long);
-int read_cross_Healpix_file(double *, float *, float *, double *, double *, long);
 int KL_compression(double *, double *, double *, double *, double *, FILE *);
-double calculate_matrices(double *, double *, double *, double *, double *, double *, double *, double *, double *, int *, int *);
 double estimate_C(double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, int *, int *, double *, int, FILE *, FILE *, FILE *);
-int calculate_overdensity(double *, double *, double *);
-int calculate_covariance(double *, double *, double *, double *, double *, double *, double *);
 int calculate_Healpix_covariance(double *, double *, double *, double *, double *, double *);
-int calculate_cross_covariance(double *, double *, double *, double *, double *, double *, double *);
-int calculate_cos_angle(double *, double *, double *);
 double calculate_signal(double *, double *, int *, int *);
 int print_signal(FILE *, double *);
-int read_signal(FILE *, double *);
 int calculate_difference(double *, double *, double *, double *, double *, double *);
 double calculate_products(double *, double *, double *, double *, double *, double *);
 int calculate_Fisher(double *, double *);
 int print_Fisher(double *, int, FILE *);
-int calculate_C(double *, double *, double *, double *);
 int calculate_KL_C(double *, double *, double *, double *, FILE *);
 int print_values(double *, int *, int *, double *, double *, int, FILE *);
