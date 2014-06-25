@@ -55,6 +55,15 @@ class OverdensityMap {
   void LoadFromFile(
     char *file /**< [in] .fits file to load. */
     );
+
+  /**
+   * Load *** from fits header data.
+   * 
+   * This was based on read_healpix_map in healpix.
+   */
+  void LoadFitsKeys(
+    char *file /**< [in] .fits file to load. */
+    );
   
  private:
 

@@ -34,13 +34,13 @@
 
 
 int main(int argc, char **argv) {
-  if (argc != 1){
-    std::cout << "Expected 1 argument" << std::endl
+  if (argc != 3) {
+    std::cout << "Error: Expected 2 arguments" << std::endl
               << "Usage:" << std::endl
-              << "aps [overdensity.fits] [bandpowers.bin]" << std::endl;
+              << "./aps [overdensity.fits] [bandpowers.bin]" << std::endl;
+    return EXIT_FAILURE;
   }
   OverdensityMap map;
   map.LoadFromFile(argv[1]);
-
   return EXIT_SUCCESS;
 }
