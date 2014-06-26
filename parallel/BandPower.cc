@@ -25,3 +25,56 @@
  */
 
 #include "BandPower.h"
+
+#include <assert.h>
+#include <stdlib.h>
+
+#include <fstream>
+#include <string>
+
+
+
+BandPower::BandPower() 
+    :  bands_(0),
+       c_(NULL),
+       c_start_(NULL),
+       c_end_(NULL){}
+
+BandPower::~BandPower() {
+  if (c_) free(c_);
+  if (c_start_) free(c_start_);
+  if (c_end_) free(c_end_);
+}
+
+void BandPower::LoadFromFile(char *file_path) {
+  bands_ = CountLines(file_path);
+
+  c_ = (double *) malloc(bands_ * sizeof(double));
+  c_start_ = (int *) malloc(bands_ * sizeof(int));
+  c_end_ = (int *) malloc(bands_ * sizeof(int));
+
+  std::ifstream band_file;
+  std::string dummy;
+  band_file.open(file_path);
+
+  int i = 0;
+  while (band_file >> dummy >> dummy >> c_start_[i] >> c_end_[i] >> c_[i] 
+          >> dummy >> dummy) {
+
+  }
+
+  band_file.close();
+}
+
+
+
+int BandPower::CountLines(char *file_path) {
+  int num_lines = 0;
+  std::ifstream in(file_path);
+  std::string unused;
+  
+  while ( std::getline(in, unused) ) ++num_lines;
+
+  in.close();
+  return num_lines;
+}

@@ -30,10 +30,36 @@
 
 class BandPower {
  public:
+  /// c_[i] combined coefficient for the band from c_start_[i] to c_end_[i]
+  double *c_;
+  /// c_start_[i] is the begining of i-th band
+  int *c_start_;
+  /// c_start_[i] is the end of i-th band
+  int *c_end_;
+  /// Total number of bands.
+  int bands_;
+
+  /**
+   *  Initialize members to zero.
+   */
   BandPower();
+
+  /**
+   *  Free all the arrays.
+   */
   ~BandPower();
+
+  /**
+    * Load band powers from a file.
+    */
+  void LoadFromFile(
+    char *file_name /**< [in] data file to load. */
+    );
   
  private:
+  int CountLines(
+    char *file_name /**< [in] data file to load. */
+    );
 
 };
 

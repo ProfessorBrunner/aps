@@ -102,7 +102,7 @@ def write_fits(filename, overdensity_map, header, nest=True, coord='C'):
         {'EIGHTMAX': (8, "each key is limited by fits to 8 characters"),
          'RESERVED': ('maybe', "Check the list of reserved keysworks")}
     """
-    hp.write_map(filename, overdensity_map, nest, coord)
+    hp.write_map(filename, overdensity_map, nest=nest, coord=coord)
     hdulist = pyfits.open(filename, mode='update')
     prihdr = hdulist[1].header
     for key, value in header.iteritems():

@@ -60,11 +60,11 @@ class OverdensityMap {
   static const double kSquareDegreePerSphere = 129600.0/M_PI;
 
   /**
-   *  A constructor.
+   *  Initialize members to zero.
    */
   OverdensityMap();
   /**
-   *  A destructor.
+   *  Free all the arrays.
    */
   ~OverdensityMap();
 
@@ -72,7 +72,7 @@ class OverdensityMap {
     * Load map from a file, sets public member variables.
     */
   void LoadFromFile(
-    char *file /**< [in] .fits file to load. */
+    char *file_path /**< [in] .fits file to load. */
     );
 
   
@@ -83,7 +83,7 @@ class OverdensityMap {
    * This was based on read_healpix_map in healpix.
    */
   void LoadFitsKeys(
-    char *file /**< [in] .fits file to load. */
+    char *file_path /**< [in] .fits file to load. */
     );
 
 

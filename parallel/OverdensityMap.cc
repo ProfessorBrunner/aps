@@ -26,47 +26,46 @@
 
 
 #include <assert.h>
-#include <string.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <float.h>
 
 #include <iostream>
+#include <cstring>
 
 #include "chealpix.h"
 #include "fitsio.h"
 
 #include "OverdensityMap.h"
 
-OverdensityMap::OverdensityMap() {
-  nside_ = 0;
-  bins_ = 0;
-  total_galaxies_ = 0;
-  omega_ = 0;
-  healpix_map_ = NULL;
-  ra_ = NULL;
-  dec_ = NULL;
-}
+OverdensityMap::OverdensityMap()
+    :  nside_(0),
+       bins_(0),
+       total_galaxies_(0),
+       omega_(0),
+       healpix_map_(NULL),
+       overdensity_(NULL),
+       ra_(NULL),
+       dec_(NULL) {}
 
 OverdensityMap::~OverdensityMap() {
   if (healpix_map_) free(healpix_map_);
+  if (overdensity_) free(overdensity_);
   if (ra_) free(ra_);
   if (dec_) free(dec_);
 }
 
-void OverdensityMap::LoadFromFile(char *file) {
-  std::cout << "Loading overdensity from: " << file << std::endl;
+void OverdensityMap::LoadFromFile(char *file_path) {
+  std::cout << "Loading overdensity from: " << file_path << std::endl;
   char ordering[10], coords[1];
   long nside;
 
   std::cout << "Getting raw pixel data..." << std::endl;
-  healpix_map_ = read_healpix_map(file, &nside, coords, ordering);
+  healpix_map_ = read_healpix_map(file_path, &nside, coords, ordering);
 
   assert(healpix_map_ != NULL);
   assert(coords[0] == 'C');
-  assert(strcmp(ordering, "NESTED") == 0);
+  assert(std::strcmp(ordering, "NESTED") == 0);
   
-  LoadFitsKeys(file);
+  LoadFitsKeys(file_path);
 
   ReadHealpixMap();
 
@@ -82,13 +81,13 @@ void OverdensityMap::LoadFromFile(char *file) {
   std::cout << "Finished loading overdensity map." << std::endl;
 }
 
-void OverdensityMap::LoadFitsKeys(char *file) {
+void OverdensityMap::LoadFitsKeys(char *file_path) {
   std::cout << "Getting FITS keys..." << std::endl;
   fitsfile *fptr;
   int status=0, hdutype;
   long long_value;
 
-  fits_open_file(&fptr, file, READONLY, &status);
+  fits_open_file(&fptr, file_path, READONLY, &status);
   if (status) fits_report_error(stderr, status);
 
   fits_movabs_hdu(fptr, 2, &hdutype, &status);
