@@ -27,18 +27,37 @@
 #ifndef APS_OVERDENSITYMAP_H_
 #define APS_OVERDENSITYMAP_H_
 
+#define M_PI (3.14159265358979323846)
+
 /**
- *  Overdensity Map. Loads the overdensity map and header data using fitsio and healpix.
+ *  Overdensity Map. Loads the overdensity map and header data using fitsio 
+ *  and healpix.
  */
 class OverdensityMap {
  public:
-  float *healpix_map_;     /**< Overdensity map. Density at each pixel. */
-  double *ra_;             /**< Right Ascension. Pixel position in astronomical coordinates. */
-  double *dec_;            /**< Declination. Pixel position in astronomical coordinates. */
-  int nside_;              /**< Subdivisions per side. Healpix level of subdivision. */
-  int bins_;               /**< Number of Pixels. Number of pixels in the map. */
-  double total_galaxies_;  /**< Number of Galaxies. Total galaxies used to calculate overdensity. */
-  double omega_;           /**< Total Area. Total area of usable pixels. */
+  /// Raw healpix map. Overdensity and unused pixels
+  float *healpix_map_;
+  ///Overdensity vector. Overdensity of pixels at ra_, dec_ 
+  double *overdensity_;
+  ///Right Ascension. Pixel position in astronomical coordinates.
+  double *ra_;
+  ///Declination. Pixel position in astronomical coordinates.
+  double *dec_;
+  ///Subdivisions per side. Healpix level of subdivision.
+  int nside_;
+  ///Number of Pixels. Number of pixels in the map.
+  int bins_;
+  ///Number of Galaxies. Total galaxies used to calculate overdensity.
+  double total_galaxies_;
+  ///Total Area. Total area of usable pixels.
+  double omega_;
+
+  ///  Conversion factor for degrees to radians
+  static const double kDegreeToRadian = M_PI/180.0;
+  ///  Conversion factor for degrees to radians
+  static const double kRadianToDegree = 180.0/M_PI;
+  /// Square degrees in a sphere
+  static const double kSquareDegreePerSphere = 129600.0/M_PI;
 
   /**
    *  A constructor.
@@ -56,16 +75,25 @@ class OverdensityMap {
     char *file /**< [in] .fits file to load. */
     );
 
+  
+ private:
   /**
-   * Load *** from fits header data.
+   * Load NSIDE and NGALAXY from fits header data.
    * 
    * This was based on read_healpix_map in healpix.
    */
   void LoadFitsKeys(
     char *file /**< [in] .fits file to load. */
     );
-  
- private:
+
+
+  /**
+   * Count the number of used pixels and calculate pixel position.
+   * 
+   * Stores the coordinates in ra_ and dec_ and value in overdensity_.
+   * Normalizes the coordinates and stores number of pixels in bins_.
+   */
+  void ReadHealpixMap();
 
 };
 

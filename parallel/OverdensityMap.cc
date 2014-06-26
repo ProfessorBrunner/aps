@@ -58,24 +58,32 @@ void OverdensityMap::LoadFromFile(char *file) {
   std::cout << "Loading overdensity from: " << file << std::endl;
   char ordering[10], coords[1];
   long nside;
+
+  std::cout << "Getting raw pixel data..." << std::endl;
   healpix_map_ = read_healpix_map(file, &nside, coords, ordering);
 
+  assert(healpix_map_ != NULL);
   assert(coords[0] == 'C');
   assert(strcmp(ordering, "NESTED") == 0);
   
   LoadFitsKeys(file);
 
+  ReadHealpixMap();
+
   if (nside_ != nside) {
-    std::cout << "read_healpix_map outputs " << nside << "." << std::endl
+    std::cout << "Mismatched value for nside:" << std::endl
+              << "read_healpix_map outputs " << nside << "." << std::endl
               << "fits_read_key_lng outputs " <<  nside_ << "." << std::endl
               << "Using " << nside_ << "." << std::endl
               << "This bug may only exist on Alex's system." << std::endl;
   }
   assert(nside_ > 0);
   assert(total_galaxies_ > 0);
+  std::cout << "Finished loading overdensity map." << std::endl;
 }
 
 void OverdensityMap::LoadFitsKeys(char *file) {
+  std::cout << "Getting FITS keys..." << std::endl;
   fitsfile *fptr;
   int status=0, hdutype;
   long long_value;
@@ -111,4 +119,39 @@ void OverdensityMap::LoadFitsKeys(char *file) {
             << "NGALAXY: " << total_galaxies_ << std::endl;
 
   assert(status == 0); //Correctly loaded header data
+}
+
+void OverdensityMap::ReadHealpixMap() {
+  std::cout << "Reading Healpix map..." << std::endl;
+  int total_pixels = nside2npix(nside_);
+  double theta, phi;
+  bins_ = 0;
+
+
+  // TODO(Alex): these loops could be parallelized with openmp
+  for (int i = 0; i < total_pixels; ++i) {
+    if (healpix_map_[i] >= -1.0) ++bins_;
+  }
+
+  ra_ = (double *) malloc(bins_*sizeof(double));
+  dec_ = (double *) malloc(bins_*sizeof(double));
+  overdensity_ = (double *)  malloc(bins_*sizeof(double));
+
+  int j = 0;
+  for (int i = 0; i < total_pixels; ++i) {
+    if (healpix_map_[i] >= -1.0) {
+      pix2ang_nest(nside_, i, &theta, &phi);
+      ra_[j] = phi*kRadianToDegree;
+      dec_[j] = 90.0 - theta*kRadianToDegree;
+      if (ra_[j] < 0.0) ra_[j] += 360.0;
+      overdensity_[j] = healpix_map_[i];
+      ++j;
+    }
+  }
+  
+  omega_ = bins_ * kSquareDegreePerSphere / total_pixels;
+
+  std::cout << "bins: " << bins_ << std::endl
+            << "with total area: " << omega_ << " square degrees" << std::endl
+            << "out of " << total_pixels << " possible pixels." << std::endl;
 }

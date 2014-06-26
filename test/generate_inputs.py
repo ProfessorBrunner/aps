@@ -84,19 +84,29 @@ def generate_map(t, p, nside, plot=False):
     return M, bands
 
 BAND_FORMAT = '%d %d %d %d %.6f %.6f %.6f'
-def write_bands(filename, bands):
+def write_bands(filename, bands, nest=True, coord='C'):
     """Write bands to file name"""
     np.savetxt(filename, bands, fmt=BAND_FORMAT)
 
 def write_fits(filename, overdensity_map, header):
     """
     Write generated map to a fits file using supplied key:val in header.
+
+    Args:
+    filename: name of file to save
+    overdensity_map: A list of healpix pixel values. Default ordering
+        according to the nested scheme and using Celestial coordinate frame.
+    header: A dict to be inserted into the second table of the FITS file.
+        Each value is a tuple of the key value and the comment. Example:
+
+        {'EIGHTMAX': (8, "each key is limited by fits to 8 characters"),
+         'RESERVED': ('maybe', "Check the list of reserved keysworks")}
     """
-    hp.write_map(filename, overdensity_map, nest=True, coord='C')
+    hp.write_map(filename, overdensity_map, nest, coord)
     hdulist = pyfits.open(filename, mode='update')
     prihdr = hdulist[1].header
     for key, value in header.iteritems():
-        prihdr.set(key, *value)
+        prihdr.set(key, value[0], value[1])
     hdulist.close()
 
 def main():
