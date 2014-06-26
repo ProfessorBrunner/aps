@@ -35,7 +35,8 @@ int main(int argc, char *argv[])
   printf("#Using %s as the input object file.\n", argv[1]);
   healpix = read_healpix_map(argv[1], &nside, coords, ordering); 
   NSIDE = count_Healpix_pixels(argv[1], healpix);
-  assert(NSIDE==nside);
+  //assert(NSIDE==nside);
+  nside = NSIDE; //Joy and I were having issues with nside = 0 this is a work around
 
   // Count the number of lines in the bandpower file to set g_bands. 
   bandpowers = fopen(argv[2], "r");

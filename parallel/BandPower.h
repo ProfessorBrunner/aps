@@ -57,6 +57,9 @@ class BandPower {
     );
   
  private:
+  /**
+    * Count the number of lines in the file.
+    */
   int CountLines(
     char *file_name /**< [in] data file to load. */
     );

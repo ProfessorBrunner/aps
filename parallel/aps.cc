@@ -31,6 +31,7 @@
 #include <iostream>
 
 #include "OverdensityMap.h"
+#include "BandPower.h"
 
 
 int main(int argc, char **argv) {
@@ -42,5 +43,8 @@ int main(int argc, char **argv) {
   }
   OverdensityMap map;
   map.LoadFromFile(argv[1]);
+
+  BandPower bp;
+  bp.LoadFromFile(argv[2]);
   return EXIT_SUCCESS;
 }

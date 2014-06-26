@@ -30,6 +30,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <string>
 
 #include "chealpix.h"
 #include "fitsio.h"
@@ -54,6 +55,7 @@ OverdensityMap::~OverdensityMap() {
 }
 
 void OverdensityMap::LoadFromFile(char *file_path) {
+  std::cout << std::string(80, '-') << std::endl;
   std::cout << "Loading overdensity from: " << file_path << std::endl;
   char ordering[10], coords[1];
   long nside;
@@ -79,6 +81,7 @@ void OverdensityMap::LoadFromFile(char *file_path) {
   assert(nside_ > 0);
   assert(total_galaxies_ > 0);
   std::cout << "Finished loading overdensity map." << std::endl;
+  std::cout << std::string(80, '-') << std::endl;
 }
 
 void OverdensityMap::LoadFitsKeys(char *file_path) {
@@ -150,7 +153,7 @@ void OverdensityMap::ReadHealpixMap() {
   
   omega_ = bins_ * kSquareDegreePerSphere / total_pixels;
 
-  std::cout << "bins: " << bins_ << std::endl
-            << "with total area: " << omega_ << " square degrees" << std::endl
-            << "out of " << total_pixels << " possible pixels." << std::endl;
+  std::cout << "Loaded " << bins_ << " bins out of "
+            << total_pixels << " possible pixels with total area of "
+            << omega_ << " square degrees." << std::endl;
 }

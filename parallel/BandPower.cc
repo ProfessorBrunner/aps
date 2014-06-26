@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <iostream>
 #include <fstream>
 #include <string>
 
@@ -47,6 +48,8 @@ BandPower::~BandPower() {
 }
 
 void BandPower::LoadFromFile(char *file_path) {
+  std::cout << std::string(80, '-') << std::endl;
+  std::cout << "Loading bandpowers from: " << file_path << std::endl;
   bands_ = CountLines(file_path);
 
   c_ = (double *) malloc(bands_ * sizeof(double));
@@ -58,12 +61,18 @@ void BandPower::LoadFromFile(char *file_path) {
   band_file.open(file_path);
 
   int i = 0;
-  while (band_file >> dummy >> dummy >> c_start_[i] >> c_end_[i] >> c_[i] 
-          >> dummy >> dummy) {
-
+  /// TODO(Alex): Check for errors
+  while (band_file >> dummy >> dummy 
+         >> c_start_[i] >> c_end_[i] >> c_[i] 
+         >> dummy >> dummy) {
+    ++i;
+    //std::cout << c_start_[i] << " " << c_end_[i] << " " << c_[i] << std::endl;
   }
 
+
+  std::cout << i << " bands loaded from file with "<< bands_ << " lines" << std::endl;
   band_file.close();
+  std::cout << std::string(80, '-') << std::endl;
 }
 
 
