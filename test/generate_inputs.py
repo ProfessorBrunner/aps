@@ -84,11 +84,11 @@ def generate_map(t, p, nside, plot=False):
     return M, bands
 
 BAND_FORMAT = '%d %d %d %d %.6f %.6f %.6f'
-def write_bands(filename, bands, nest=True, coord='C'):
+def write_bands(filename, bands):
     """Write bands to file name"""
     np.savetxt(filename, bands, fmt=BAND_FORMAT)
 
-def write_fits(filename, overdensity_map, header):
+def write_fits(filename, overdensity_map, header, nest=True, coord='C'):
     """
     Write generated map to a fits file using supplied key:val in header.
 
