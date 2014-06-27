@@ -79,6 +79,8 @@ def generate_map(t, p, nside, plot=False):
     ell_min = ell3-1
     ell_max = ell3+1
 
+    cl3 = cl3*1000 #Bigger c_l values for convergence
+
     bands = zip(index, ell3, ell_min, ell_max, cl3, cl_err, cl3)
 
     return M, bands
