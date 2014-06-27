@@ -114,6 +114,28 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   multiply_matrices(noise, sum, B, g_bins, g_bins, g_bins);
   invert_matrix(noise, g_bins);
 
+  // //Test sym
+  // printf("#-#########\n#-#Testing symmetry\n#-#########\n");
+  // double threshold = .01;
+  // double diff;
+  // int count = 0;
+  // for (i=0; i<g_bins; i++) {
+  //   for (j=i+1; j<g_bins; j++) {
+  //     diff = B[i+j*g_bins] - B[j+i*g_bins];
+  //     diff = (diff < 0)? -diff : diff;
+  //     if (diff>threshold) {
+  //       printf("#-# %10f =/= %9f    diff: %8f    diff/avg: %9f\n", B[i+j*g_bins], B[j+i*g_bins], diff, 2.0*diff/(B[i+j*g_bins]+B[j+i*g_bins]) );
+  //       ++count;
+  //     }
+  //     if (count > 100) break;
+  //   }
+  //   if (count > 100) break;
+  // }
+  // printf("#-# With threshold %g\n", threshold);
+  // printf("#-# %d out of %.0f don't match\n", count, 0.5*(g_bins*g_bins-g_bins));
+  // printf("#-# %.2f percent\n", 100.0*count/(0.5*(g_bins*g_bins-g_bins)));
+  // printf("#-#########\n#-#Finished Testing\n#-#########\n");
+
   // Calculate eigenvalues and eigenvectors.
   printf("#Calculating  eigenvalues and eigenvectors.\n");
   dsyev(&JOBZ, &UPLO, &N, B, &LDA, W, WORK, &LWORK, &INFO);
