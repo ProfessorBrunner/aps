@@ -23,3 +23,30 @@
  * During the REU, Alex and Joy converted the code to work with distributed
  * memory using MPI.
  */
+
+#include <assert.h>
+#include <stdlib.h>
+
+#include <iostream>
+#include <cstring>
+#include <string>
+
+#include "chealpix.h"
+#include "fitsio.h"
+#include "AngularPowerSpectrum.h"
+
+//constructor
+AngularPowerSpectrum::AngularPowerSpectrum(){}
+
+
+//destructor
+AngularPowerSpectrum::~AngularPowerSpectrum() {}
+
+//Build Covariance Matrix
+void AngularPowerSpectrum::CalculateCovariance() {}
+
+//Build Signal Matrix
+void AngularPowerSpectrum::CalculateSignal() {}
+
+//Karhunen-Loeve Compression
+void AngularPowerSpectrum::KLCompression() {}
