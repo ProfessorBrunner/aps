@@ -78,9 +78,8 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   long k=0;
   double *A, *W, *WORK, KLtime = 0.0, *test1, *test2, *test3, *test4, *test5, *test6, *test7, *B, *Bt, *sum, *B_prime, *B_primet, total_snr = 0.0, signal_sum = 0.0;
   char JOBZ, UPLO;
-  time_t t0, t1;
-
-  time(&t0);
+  Timer compression_time;
+  tic(&compression_time);
 
   N = LDA = g_bins;
   LWORK = 3*N - 1;
@@ -238,9 +237,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   } 
   printf("#Covariance matrix calculated from data.\n");
 
-  time(&t1);
-  KLtime = difftime(t1, t0);
-  printf("#Done calculating KL-compression. Time = %lf seconds.  LWORK used: %d. Optimal LWORK: %lf.\n", KLtime, LWORK, WORK[0]);
+
+  toc(&compression_time);
+  printf("#Done calculating KL-compression. Time = %g seconds.  LWORK used: %d. Optimal LWORK: %g.\n", compression_time.elapsed, LWORK, WORK[0]);
 
   return 0;
 }
@@ -303,11 +302,11 @@ int calculate_Healpix_covariance(double *cos_angle, double *noise, double *data_
 double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_stop)
 {
   long i, j, k, l, z;
-  double signaltime;
-  time_t t0, t1;
+  Timer time_calc_signal;
+  tic(&time_calc_signal);
 
   printf("#Calculating signal matrix.\n");
-  time(&t0);
+
 #pragma omp parallel for shared(g_bands, g_bins, signal, C_start, C_stop, cos_angle) private(l, j, i, k)
   for (z=0; z<kNumThreads; z++) {
     for (i=z; i<(g_bands*g_bins*g_bins); i+=kNumThreads) {
@@ -319,11 +318,10 @@ double calculate_signal(double *signal, double *cos_angle, int *C_start, int *C_
       }
     }
   }
-  time(&t1);
-  signaltime = difftime(t1, t0);
-  printf("#Done calculating signal matrix. Time = %lf seconds.\n", signaltime);
+  toc(&time_calc_signal);
+  printf("#Done calculating signal matrix. Time = %g seconds.\n", time_calc_signal.elapsed);
 
-  return signaltime;
+  return time_calc_signal.elapsed;
 }
 
 int print_signal(FILE *output_signal, double *signal)
@@ -366,14 +364,15 @@ double calculate_products(double *model_covariance, double *signal, double *A, d
   int l, LDA, LDB, LDC, M, N, K;
   double ALPHA, BETA, multiplicationtime;
   char TRANSA, TRANSB;
-  time_t t0, t1;
+  Timer time_calc_products;
+  tic(&time_calc_products);
 
   M = N = K = LDA = LDB = LDC = g_bins;
   ALPHA = 1.0;
   BETA = 0.0;
   TRANSA = TRANSB = 'N';
 
-  time(&t0);
+  
   for (l=0; l<g_bands; l++) {
     //A[l*g_bins*g_bins] := model_covariance * signal[l*g_bins*g_bins]
     dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, model_covariance, &LDA, &signal[l*g_bins*g_bins], &LDB, &BETA, &A[l*g_bins*g_bins], &LDC);
@@ -382,11 +381,11 @@ double calculate_products(double *model_covariance, double *signal, double *A, d
     dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, &A[l*g_bins*g_bins], &LDA, model_covariance, &LDB, &BETA, &B[l*g_bins*g_bins], &LDC);
     average[l] = trace_multiply(difference, &B[l*g_bins*g_bins], g_bins, g_bins);
   }
-  time(&t1);
-  multiplicationtime = difftime(t1, t0);
-  printf("#Done calculating matrix multiplications. Time = %lf seconds.\n", multiplicationtime);    
   
-  return multiplicationtime;
+  toc(&time_calc_products);
+  printf("#Done calculating matrix multiplications. Time = %g seconds.\n", time_calc_products.elapsed);
+  
+  return time_calc_products.elapsed;
 }
 
 /// A function to calculate the Fisher matrix. 

@@ -15,3 +15,18 @@ int object_count(FILE *objects, int n)
   
   return number_lines/n;
 }
+
+void tic(Timer *timer) {
+  gettimeofday(&timer->start, NULL);
+}
+
+void toc(Timer *timer) {
+  gettimeofday(&timer->stop, NULL);
+  timer->elapsed = ((timer->stop.tv_sec - timer->start.tv_sec)*1000000 + 
+    (timer->stop.tv_usec - timer->start.tv_usec) ) / 1000000.0;
+}
+
+void toc_print(Timer *timer) {
+  toc(timer);
+  printf("elapsed time: %f\n", timer->elapsed);
+}

@@ -29,8 +29,16 @@ extern double g_omega;
 extern double g_total_galaxies;
 
 /*In tools.c*/
-int object_count(FILE *, int);
+typedef struct Timer_s {
+  struct timeval start;
+  struct timeval stop;
+  double elapsed;
+} Timer;
 
+int object_count(FILE *, int);
+void tic(Timer *timer);
+void toc(Timer *timer);
+void toc_print(Timer *timer);
 /* In math.c*/
 
 

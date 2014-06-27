@@ -18,16 +18,18 @@ double g_total_galaxies;   // Total number of galaxies in usable pixels.
 	* spectrum that best fits the input files. */
 int main(int argc, char *argv[])
 {
+  Timer time_total;
+  Timer time_find_c_iteration;
+  Timer time_function;
+  tic(&time_total);
+
   int i, n, *C_start, *C_stop;
   long nside, NSIDE;
   float *healpix;
   double *overdensity, *data_covariance, *noise, *cos_angle, *difference, *A, *B, *C, *C_change; 
   double *ra, *dec, *F, *average, *model_covariance, *signal, signaltime, iterationtime = 0;
   char ordering[10], coords[1], filename[kMaxChars], name[kMaxChars];
-  time_t t0, t1, t2, t3;
   FILE *objects, *bandpowers, *output_KL, *output_C, *output_Fisher, *output_Window;
-
-  time(&t0);
 
   // Count the number of pixels in the object file to set g_bins. 
   objects = fopen(argv[1], "r");
@@ -51,13 +53,13 @@ int main(int argc, char *argv[])
     strcpy(name, argv[2]);
   }
 
-  sprintf(filename, "KL_%s", name);
+  sprintf(filename, "output/KL_%s", name);
   output_KL = fopen(filename, "w");
-  sprintf(filename, "C_%s", name);
+  sprintf(filename, "output/C_%s", name);
   output_C = fopen(filename, "w");
-  sprintf(filename, "Fisher_%s", name);
+  sprintf(filename, "output/Fisher_%s", name);
   output_Fisher = fopen(filename, "w");
-  sprintf(filename, "Window_%s", name);
+  sprintf(filename, "output/Window_%s", name);
   output_Window = fopen(filename, "w");
   
   printf("#Bins = %ld, Bands = %ld\n", g_bins, g_bands);
@@ -94,22 +96,22 @@ int main(int argc, char *argv[])
   read_Healpix_file(overdensity, healpix, ra, dec, nside);
 
   // Calculate the covariance matrix based on the observed overdensities.
-  time(&t2);
+  tic(&time_function);
   calculate_Healpix_covariance(cos_angle, noise, data_covariance, ra, dec, overdensity);
-  time(&t3);
-  printf("#Calculated Healpix covariance.  Elapsed time = %lf seconds.\n", difftime(t3, t2));
+  toc(&time_function);
+  printf("#Calculated Healpix covariance.  Elapsed time = %g seconds.\n", time_function.elapsed);
 
   // Calculate the signal matrix using the angles between the pixels.
-  time(&t2);
+  tic(&time_function);
   signaltime = calculate_signal(signal, cos_angle, C_start, C_stop);
-  time(&t3);
-  printf("#Calculated signal.  Elapsed time = %lf seconds.\n", difftime(t3, t2));
+  toc(&time_function);
+  printf("#Calculated signal.  Elapsed time = %g seconds.\n", time_function.elapsed);
 
   // KL-Compress
-  time(&t2);
+  tic(&time_function);
   KL_compression(overdensity, signal, noise, data_covariance, C, output_KL); 
-  time(&t3);
-  printf("#Calculated KL Compression.  Elapsed time = %lf seconds.\n", difftime(t3, t2));
+  toc(&time_function);
+  printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
 
   F = (double *)malloc(g_bands*g_bands*sizeof(double));
   A = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));
@@ -128,19 +130,20 @@ int main(int argc, char *argv[])
   for (n=1; n<=kMaxIter; n++) {
 
     // Calculate the C_l and Fisher matrix from the signal and covariance matrices
-    time(&t2);
+    tic(&time_find_c_iteration);
     iterationtime += estimate_C(signal, model_covariance, data_covariance, noise, difference, average, A, B, F, C, C_start, C_stop, C_change, n, output_C, output_Fisher, output_Window);
     assert(fflush(NULL)==0);
-    time(&t3);
-    printf("#Calculated iteration %d.  Elapsed time = %lf seconds.\n", n, difftime(t3, t2));
+    toc(&time_find_c_iteration);
+    printf("#Calculated iteration %d.  Elapsed time = %g seconds.\n", n, time_find_c_iteration.elapsed);
 
   }
 
-  time(&t1);
-
+  toc(&time_total);
   // Print out time taken for the program and how much was done in the kernel. 
-  printf("#End of program.  Elapsed time = %lf seconds.  Kernel is %lf percent of total time.\n", difftime(t1, t0), (signaltime+iterationtime)*100.0/(difftime(t1, t0)*1.0));
+  //printf("#End of program.  Elapsed time = %g seconds.  Kernel is %lf percent of total time.\n", difftime(t1, t0), (signaltime+iterationtime)*100.0/(difftime(t1, t0)*1.0));
+  printf("#End of program.  Elapsed time = %g seconds.\n", time_total.elapsed);
   assert(fflush(NULL)==0);
+
 
   return 0;
 }

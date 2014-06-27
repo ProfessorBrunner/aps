@@ -48,23 +48,23 @@ double invert_matrix(double *A, long size)
 {
   int M, N, LDA, order, INFO, LWORK, *IPIV;
   double inversetime, *WORK;
-  time_t t0, t1;
+  Timer time_invert;
+  tic(&time_invert);
 
   order = M = N = LDA = LWORK = size;
 
   IPIV = (int *)malloc(N*sizeof(int));
   WORK = (double *)malloc(LWORK*LWORK*sizeof(double));
 
-  time(&t0);
   dgetrf(&M, &N, A, &LDA, IPIV, &INFO);
   assert(INFO==0 && fflush(NULL)==0);
   dgetri(&order, A, &LDA, IPIV, WORK, &LWORK, &INFO);
   assert(INFO==0 && fflush(NULL)==0);
-  time(&t1);
-  inversetime = difftime(t1, t0);
-  printf("#Done calculating inverse matrix. Time = %lf seconds.\n", inversetime);
+  
+  toc(&time_invert);
+  printf("#Done calculating inverse matrix. Time = %g seconds.\n", time_invert.elapsed);
 
-  return inversetime;
+  return time_invert.elapsed;
 }
 
 /// Multiplication of two matrices of size (MxN) = (MxK)(KxN): C = AB
@@ -73,7 +73,8 @@ double multiply_matrices(double *A, double *B, double *C, long m, long k, long n
   int LDA, LDB, LDC, M, N, K;
   double ALPHA, BETA, multiplicationtime;
   char TRANSA, TRANSB;
-  time_t t0, t1;
+  Timer time_multiply;
+  tic(&time_multiply);
 
   LDA = M = m;
   LDB = K = k;
@@ -83,13 +84,12 @@ double multiply_matrices(double *A, double *B, double *C, long m, long k, long n
   BETA = 0.0;
   TRANSA = TRANSB = 'N';
 
-  time(&t0);
   dgemm(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, A, &LDA, B, &LDB, &BETA, C, &LDC);
-  time(&t1);
-  multiplicationtime = difftime(t1, t0);
-  printf("#Done calculating matrix multiplication. Time = %lf seconds.\n", multiplicationtime);
 
-  return multiplicationtime;
+  toc(&time_multiply);
+  printf("#Done calculating matrix multiplication. Time = %g seconds.\n", time_multiply.elapsed);
+
+  return time_multiply.elapsed;
 }
 
 /// Transpose m x n matrix A into n x m matrix B
