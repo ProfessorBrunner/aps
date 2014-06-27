@@ -9,13 +9,13 @@
 # https://github.com/ProfessorBrunner/aps
 
 
-all: sequential
+all: shared_memory distributed_memory
 
-sequential: .FORCE
-	$(MAKE) -C ./sequential
+shared_memory: .FORCE
+	$(MAKE) -C ./shared_memory
 
-parallel: .FORCE
-	$(MAKE) -C parallel
+distributed_memory: .FORCE
+	$(MAKE) -C distributed_memory
 
 #################################################################################
 # Test
@@ -26,7 +26,7 @@ FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
 DAT=data/CL_$(TEST_NSIDE)_lcdm.dat
 
 test: profile  $(FITS) $(DAT)
-	./sequential/KL_spectrum $(FITS) $(DAT)
+	./shared_memory/KL_spectrum $(FITS) $(DAT)
 
 %.fits: data test/create_mock.py
 
@@ -36,7 +36,7 @@ data: .FORCE
 	./test/create_mock.py ./test/catalog.dat ./data $(TEST_NSIDE)
 
 profile: .FORCE
-	$(MAKE) -C ./sequential profile
+	$(MAKE) -C ./shared_memory profile
 
 
 #################################################################################
@@ -45,7 +45,8 @@ profile: .FORCE
 .FORCE:
 
 clean: .FORCE
-	$(MAKE) -C ./sequential clean
+	$(MAKE) -C ./shared_memory clean
+	$(MAKE) -C ./distributed_memory clean
 
 clean_data: .FORCE
 	rm data/*
