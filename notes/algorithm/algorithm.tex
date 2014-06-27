@@ -1,0 +1,107 @@
+\documentclass{article}
+\usepackage[a4paper,vmargin=1cm,hmargin=5mm]{geometry}
+\usepackage{array,longtable,booktabs,amssymb,amsmath}
+\renewcommand*{\arraystretch}{2.5}
+\newcommand{\func}[1] {\textbf{\textit{#1()}}}
+\newcommand{\TRANSPOSE}[0] {\intercal}
+
+
+\begin{document}
+\setlength\LTleft{0pt}
+\setlength\LTright{0pt}
+\begin{longtable}{@{\extracolsep{\fill}}p{\dimexpr 0.5\linewidth-2\tabcolsep}
+                                         p{\dimexpr 0.5\linewidth-2\tabcolsep}@{}}
+%\hline
+\multicolumn{2}{l}{\bf Quadratic Estimation of the Angular Power Spectrum} \\
+Code & Paper  \\
+\hline
+\multicolumn{2}{c}{\bf Load data} \\ \hline
+\func{read\_healpix\_map} \newline
+--- From chealpix.h \newline
+\func{count\_Healpix\_pixels} \newline
+--- Get the number of pixels \newline
+\func{object\_count} \newline
+--- Determine number of bandpowers \newline
+Allocate and Initialize variables \newline
+\func{read\_bandpower\_file} \newline
+--- Load Initial coefficients $\mathcal{C}^{Start}_{\ell}$, $\mathcal{C}^{End}_{\ell}$, $\mathcal{C}_{\ell}$ \newline
+\func{read\_healpix\_file} \newline
+--- Load the right ascension $\vec{\alpha}$, declination $\vec{\delta}$, overdensity $\vec{x}$\newline
+& %%%%%%%%%%%%%%%%%%%%%%
+overdensity
+$\vec{x_i} \equiv \frac{G_i}{\overline{G}\Omega_i} - 1$ \newline 
+Where $G_i$ is the number of galaxies in pixel $i$, $\overline{G}$ is the total number of Galaxies, and $\Omega_i$ is the area of the pixel in square degrees \newline 
+\newline
+$\mathcal{C}_\ell \equiv \frac{\ell(\ell+1)C_{\ell}}{2\pi} = \sum_{b} \chi_{b(\ell)} \mathcal{C}_b$ \newline \newline
+where $\chi_{b(\ell)} = 1$ while $\ell \in b$ and zero otherwise 
+\\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\multicolumn{2}{c}{\bf Initialize} \\ \hline
+\func{calculate\_Healpix\_covariance} \newline
+%    COS
+$\mathsf{COS}_{ij}=\sin\left(\vec{\delta_{i}}\right)\times\sin\left(\vec{\delta_{j}}\right)+\cos\left(\vec{\delta_{i}}\right)\times\cos\left(\vec{\delta_{j}}\right)\cos\left(\vec{\alpha_{i}}-\vec{\alpha_{i}}\right)$ \newline
+%    N
+$\mathbf{N}=1000000\left[\begin{array}{cccc}
+1 & 1 & \cdots & 1\\
+1 & 1 & \cdots & 1\\
+\vdots & \vdots & \ddots & \vdots\\
+1 & 1 & \cdots & 1
+\end{array}\right]+\frac{\overline{\Omega}}{\overline{G}}\mathbf{I}$ \newline
+where $\overline{\Omega}$ is the total area of the non-masked pixels \newline
+\func{calculate\_signal} \newline
+%    S
+$S_{ij}^{\ell}=\sum_{k=C_{\ell}^{Start}}^{C_{\ell}^{End}}\frac{2k+1}{2k\left(k+1\right)}Legendre\left(\mathsf{COS}_{ij},k\right)$ \newline
+& %%%%%%%%%%%%%%%%%%%%%%
+$\mathbb{C}_{ij} \equiv \langle x_i x_j \rangle = \mathbf{S} + \mathbf{N}$ \newline \newline \newline
+$S_{ij} = \sum_{\ell} \frac{2\ell+1}{2\ell(\ell+1)} \mathcal{C}_\ell P_\ell (\cos \theta_{ij}) e^{-\ell(\ell+1)\tau^2} = \sum_{b} \mathcal{C}_b \mathbf{P}_b$ \newline \newline \newline
+$N_{ij} = \sigma_i^2 \delta_{ij} = \frac{1}{\overline{G}}\delta_{ij}$ \newline
+where $\sigma_i$ is the rms noise in pixel $i$.  \newline
+\\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\multicolumn{2}{c}{\bf Karhunen-Lo\'{e}ve Compression} \\ \hline
+\func{KL\_compression} \newline
+$\mathbf{SUM}_{ij}=\sum_{\ell}\mathbf{S}_{ij}^{\ell}\times \mathbf{C}_{\ell}$ \newline
+$\mathbf{B},\vec{W}=eigen\left(\mathbf{N}^{-1}\times \mathbf{SUM}\right)$ \newline
+$\mathbf{B}_{ij}=\frac{\mathbf{B}_{ij}}{\sqrt{\mathbf{N}_{ij}}}$ \newline
+Like in paper $\mathbf{B}^{\prime}$ is formed by removing vectors corresponding to eigenvalues less than 1. \newline
+$\vec{x}=\mathbf{B}^{\prime\TRANSPOSE}\times \vec{x}$ \newline
+$\mathbf{N}=\mathbf{B}^{\prime\TRANSPOSE}\times\mathbf{N}\times\mathbf{B}^{\prime}$ \newline
+$\mathbf{S_\ell}=\mathbf{B}^{\prime\TRANSPOSE}\times\mathbf{S_\ell}\times\mathbf{B}^{\prime}$ \newline
+ 
+& %%%%%%%%%%%%%%%%%%%%%%
+Solve generalized eigenvalue equation: \newline
+$\mathbf{Sb}_{i} = \lambda_{i} \mathbf{Nb}_i$ \newline
+and normalizing so that: \newline
+$\mathbf{b}^{T}_{i} \mathbf{Nb}_{i} = 1$ \newline
+Reorder the vectors $\mathbf{b}_{i}$ by the signal to noise ratio: $\lambda_{i}$ and keep those with $\lambda_{i} \ge 1$ \newline
+The remaining vectors $\mathbf{b}_{i}$ form the columns of the matrix $\mathbf{B}'$ that we use to transform the data vector $\mathbf{x}' \equiv \mathbf{B}'^{T} \mathbf{x}$, 
+as well as the signal, Legendre polynomial, and noise matrices $\mathbf{S}' = \mathbf{B}'^{T} \mathbf{SB}'$, 
+$\mathbf{P}' = \mathbf{B}'^{T} \mathbf{PB}'$, and $\mathbf{N}' = \mathbf{B}'^{T} \mathbf{NB}'$
+
+\\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\multicolumn{2}{c}{\bf Iterative Quadratic Estimation} \\ \hline
+$\mathbb{C}_{ij}^{Data}=xx^{\TRANSPOSE}$ \newline
+$\mathbf{DF}=\mathbb{C}^{Data}-\mathbf{N}$ \newline \newline \newline
+iterate: \newline
+$\mathbb{C}_{ij}=\sum_{\ell}\mathbf{S}_{ij}^{\ell}\times \mathbf{C}_{\ell}+\mathbf{N}_{ij}$ \newline
+$\mathbf{A}_{\ell}=\mathbb{C}^{-1}\times \mathbf{S}_{\ell}$ \newline
+$\mathbf{B}_{\ell}=\mathbb{C}^{-1}\times \mathbf{S}_{\ell}\times\mathbb{C}^{-1}$ \newline
+$\overrightarrow{avg}_{\ell}=\textrm{Tr}\left(\mathbf{DF}\times \mathbf{B}_{\ell}\right)$ \newline
+$\mathbf{F}_{\ell\ell^{\prime}}=\frac{1}{2}\textrm{Tr}\left(\mathbf{A}_{\ell}\times \mathbf{A}_{\ell^{\prime}}\right)$ \newline
+$\mathbf{Y}=\sqrt{\mathbf{F}^{-1}}\times \mathbf{F}$ \newline
+$\mathbf{W}_{ij}=\frac{\mathbf{Y}_{ij}}{\sum_{k}\mathbf{Y}_{kj}}$ \newline
+$\mathbf{Z}=\mathbf{W}\times\left(\sqrt{\mathbf{F}^{-1}}\times \mathbf{F}\right)^{-1}\times\sqrt{\mathbf{F}^{-1}}$ \newline
+$\mathbf{W}^{\prime}=\mathbf{Z}\times \mathbf{F}$  \newline
+or  \newline
+$\mathbf{W}^{\prime}=\mathbf{W}\times\left(\sqrt{\mathbf{F}^{-1}}\times \mathbf{F}\right)^{-1}\times\sqrt{\mathbf{F}^{-1}}\times \mathbf{F}$ \newline
+$\mathbf{C}_{\ell}=\frac{1}{2}\sum_{k}\mathbf{Z}_{\ell k}\times\overrightarrow{avg}_{k}$ \newline
+
+& %%%%%%%%%%%%%%%%%%%%%%
+$F_{b b'} = \frac{1}{2}\ \textrm{Tr}\left(\mathbb{C}^{-1} \textbf{P}_{b} \mathbb{C}^{-1} \textbf{P}_{b'}\right)$ \newline
+$\delta \mathcal{C}_b = \frac{1}{2} (\textbf{F}^{-1/2})_{b b'}\ \textrm{Tr}\left[(x x^{\TRANSPOSE}-\textbf{N})(\mathbb{C}^{-1} \textbf{P}_{b'} \mathbb{C}^{-1})\right]$ \newline
+\\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{longtable}
+\end{document}
