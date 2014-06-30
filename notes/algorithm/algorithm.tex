@@ -1,12 +1,14 @@
 \documentclass{article}
 \usepackage[a4paper,vmargin=1cm,hmargin=5mm]{geometry}
+\usepackage{setspace}
 \usepackage{array,longtable,booktabs,amssymb,amsmath}
-\renewcommand*{\arraystretch}{2.5}
+\renewcommand*{\arraystretch}{1}
 \newcommand{\func}[1] {\textbf{\textit{#1()}}}
 \newcommand{\TRANSPOSE}[0] {\intercal}
 
 
 \begin{document}
+\begin{spacing}{2}
 \setlength\LTleft{0pt}
 \setlength\LTright{0pt}
 \begin{longtable}{@{\extracolsep{\fill}}p{\dimexpr 0.5\linewidth-2\tabcolsep}
@@ -104,4 +106,5 @@ $F_{b b'} = \frac{1}{2}\ \textrm{Tr}\left(\mathbb{C}^{-1} \textbf{P}_{b} \mathbb
 $\delta \mathcal{C}_b = \frac{1}{2} (\textbf{F}^{-1/2})_{b b'}\ \textrm{Tr}\left[(x x^{\TRANSPOSE}-\textbf{N})(\mathbb{C}^{-1} \textbf{P}_{b'} \mathbb{C}^{-1})\right]$ \newline
 \\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{longtable}
+\end{spacing}
 \end{document}
