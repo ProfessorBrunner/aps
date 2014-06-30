@@ -1,6 +1,16 @@
 # Quadratic Estimation of Angular Power Spectrum
 # Parallel implementation
 
+#################
+# To Do: Link MPI and Elemental
+# Makefile from sample Elemental Code:
+# include /usr/local/conf/ElemVars
+#
+# SVD: SVD.cpp
+#	${CXX} ${ELEM_COMPILE_FLAGS} $< -o $@ ${ELEM_LINK_FLAGS} ${ELEM_LIBS}
+#################
+
+
 CC=gcc
 CXX=g++
 MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl

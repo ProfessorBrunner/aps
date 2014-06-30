@@ -13,7 +13,7 @@
  * The Laboratory for Cosmological Data Mining
  * Professor Robert J. Brunner
  * http://lcdm.astro.illinois.edu/
- * University of Illinois Urbana-Champagne
+ * University of Illinois Urbana-Champaign
  *
  * Originally published: http://lcdm.astro.illinois.edu/papers/sdssdr7-aps.html
  *
@@ -30,7 +30,7 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-
+//#include "elemental-lite.hpp"
 #include "chealpix.h"
 #include "fitsio.h"
 #include "AngularPowerSpectrum.h"
@@ -38,15 +38,46 @@
 //constructor
 AngularPowerSpectrum::AngularPowerSpectrum(){}
 
-
 //destructor
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
-//Build Covariance Matrix
-void AngularPowerSpectrum::CalculateCovariance() {}
+/**
+ * Called from aps' main()
+ */
+void AngularPowerSpectrum::run() {}
 
-//Build Signal Matrix
-void AngularPowerSpectrum::CalculateSignal() {}
+/*
+ * Build Covariance Matrix
+ */
+void CalculateCovariance() {}
 
-//Karhunen-Loeve Compression
-void AngularPowerSpectrum::KLCompression() {}
+/*
+ * Build Signal Matrix
+ */
+void CalculateSignal() {}
+
+/*
+ * Karhunen-Loeve Compression
+ */
+void KLCompression() {}
+
+/*
+ * Estimates the APS given Signal & Covariance Matrices
+ */
+void EstimateC() {}
+
+/*
+ * Build Expected Covariance Matrix based on C_l
+ * Previously named calculate_difference 
+ */
+void ExpectedCovariance() {}
+
+/*
+ * Build Fisher Matrix & Weighted Average
+ */
+void CalculateFisher() {}
+
+/*
+ * Recalculate C_l from the Fisher Matrix
+ */
+void RecalculateC_L() {}
