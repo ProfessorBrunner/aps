@@ -1,6 +1,10 @@
 #include "angular_power_spectrum.h"
 //#include "new_angular_power_spectrum.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 // Run with "./KL_spectrum <data.dat> <bandpowers.dat>
 
 /*
@@ -28,7 +32,8 @@ int main(int argc, char *argv[])
   float *healpix;
   double *overdensity, *data_covariance, *noise, *cos_angle, *difference, *A, *B, *C, *C_change; 
   double *ra, *dec, *F, *average, *model_covariance, *signal, signaltime, iterationtime = 0;
-  char ordering[10], coords[1], filename[kMaxChars], name[kMaxChars];
+  char ordering[10], coords[1], filename[kMaxChars], output_root[kMaxChars], 
+       name[kMaxChars], test_root[kMaxChars], *char_position;
   FILE *objects, *bandpowers, *output_KL, *output_C, *output_Fisher, *output_Window;
 
   // Count the number of pixels in the object file to set g_bins. 
@@ -47,20 +52,49 @@ int main(int argc, char *argv[])
   g_bands = object_count(bandpowers, kLinesPerObject);
 
   // Strip the directory structure from the filename if present
-  if (strrchr(argv[2], '/')!=NULL) {
-    strcpy(name, strrchr(argv[2], '/')+1);
+  assert(strlen(argv[2])<kMaxChars);
+  strcpy(output_root, argv[2]);
+  char_position = strrchr(output_root, '/');
+  if (char_position) {
+    strcpy(name, char_position+1);
+    *char_position = '\0';
   } else {
-    strcpy(name, argv[2]);
+    strcpy(name, output_root);
+    output_root[0] = '.';
+    output_root[1] = '\0';
   }
 
-  sprintf(filename, "output/KL_%s", name);
+
+  struct stat st = {0};
+
+  sprintf(filename, "%s/output", output_root);
+  if (stat(filename, &st) == -1) mkdir(filename, 0766);
+
+# ifdef APS_WRITE_TEST
+  sprintf(test_root, "%s/test_%s", output_root, name);
+  char_position = strrchr(test_root, '.');
+  if (char_position) *char_position = '\0';
+  if (stat(test_root, &st) == -1) mkdir(test_root, 0766);
+# endif
+
+  sprintf(filename, "%s/output/KL_%s", output_root, name);
+  printf("%s\n", filename);
   output_KL = fopen(filename, "w");
-  sprintf(filename, "output/C_%s", name);
+  assert(output_KL);
+
+  sprintf(filename, "%s/output/C_%s", output_root, name);
   output_C = fopen(filename, "w");
-  sprintf(filename, "output/Fisher_%s", name);
+  assert(output_C);
+
+  sprintf(filename, "%s/output/Fisher_%s", output_root, name);
   output_Fisher = fopen(filename, "w");
-  sprintf(filename, "output/Window_%s", name);
+  assert(output_Fisher);
+
+  sprintf(filename, "%s/output/Window_%s", output_root, name);
   output_Window = fopen(filename, "w");
+  assert(output_Window);
+
+
   
   printf("#Bins = %ld, Bands = %ld\n", g_bins, g_bands);
   fflush(NULL);
@@ -106,12 +140,22 @@ int main(int argc, char *argv[])
   signaltime = calculate_signal(signal, cos_angle, C_start, C_stop);
   toc(&time_function);
   printf("#Calculated signal.  Elapsed time = %g seconds.\n", time_function.elapsed);
+# ifdef APS_WRITE_TEST
+  save_raw_double_array(test_root, "overdensity", overdensity, g_bins);
+  save_raw_double_array(test_root, "signal", signal, g_bins*g_bins*g_bands);
+# endif
 
   // KL-Compress
   tic(&time_function);
   KL_compression(overdensity, signal, noise, data_covariance, C, output_KL); 
   toc(&time_function);
   printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
+# ifdef APS_WRITE_TEST
+  save_raw_double_array(test_root, "kl_overdensity", overdensity, g_bins);
+  save_raw_double_array(test_root, "kl_signal", signal, g_bins*g_bins*g_bands);
+  save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
+  save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
+# endif
 
   F = (double *)malloc(g_bands*g_bands*sizeof(double));
   A = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));

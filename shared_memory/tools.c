@@ -30,3 +30,16 @@ void toc_print(Timer *timer) {
   toc(timer);
   printf("elapsed time: %f\n", timer->elapsed);
 }
+
+void save_raw_double_array(char *root, char *name, double *data, int len) {
+  char filename[kMaxChars];
+  int count;
+  sprintf(filename, "%s/%s", root, name);
+  printf("#Writing test data %s to %s\n", name, filename);
+
+  FILE *fp = fopen(filename, "wb");
+  assert(fp);
+  count = fwrite(data, sizeof(*data), len, fp);
+  assert(count==len);
+  fclose(fp);
+}

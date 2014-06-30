@@ -17,6 +17,7 @@
 #define kContamination 0.0             // stellar contamination
 #define kNumThreads 16                 // number of processors
 #define KLargeNumber 1000000.0         // Large number to remove the mean mode in KL compression
+#define APS_WRITE_TEST
 
 /* Defined in *_spectrum.c */
 // Total number of usable pixels.
@@ -35,10 +36,13 @@ typedef struct Timer_s {
   double elapsed;
 } Timer;
 
+//count number of lines in a file
 int object_count(FILE *, int);
-void tic(Timer *timer);
-void toc(Timer *timer);
-void toc_print(Timer *timer);
+void tic(Timer *timer); //Start timer
+void toc(Timer *timer); //Stop timer
+void toc_print(Timer *timer); //Stop timer and print time
+//Write an array to disk in file "dir/name"
+void save_raw_double_array(char *root, char *name, double *data, int len);
 /* In math.c*/
 
 
