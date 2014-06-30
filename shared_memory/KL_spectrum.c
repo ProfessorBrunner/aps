@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
   if (stat(filename, &st) == -1) mkdir(filename, 0766);
 
 # ifdef APS_WRITE_TEST
-  sprintf(test_root, "%s/test_%s", output_root, name);
+  sprintf(test_root, "%s/test_shared_%s", output_root, name);
   char_position = strrchr(test_root, '.');
   if (char_position) *char_position = '\0';
   if (stat(test_root, &st) == -1) mkdir(test_root, 0766);
