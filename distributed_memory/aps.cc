@@ -13,7 +13,7 @@
  * The Laboratory for Cosmological Data Mining
  * Professor Robert J. Brunner
  * http://lcdm.astro.illinois.edu/
- * University of Illinois Urbana-Champagne
+ * University of Illinois Urbana-Champaign
  *
  * Originally published: http://lcdm.astro.illinois.edu/papers/sdssdr7-aps.html
  *
@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 #include <iostream>
-
+//#include "elemental-lite.hpp"
 #include "OverdensityMap.h"
 #include "BandPower.h"
 

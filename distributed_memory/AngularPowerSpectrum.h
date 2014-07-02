@@ -13,7 +13,7 @@
  * The Laboratory for Cosmological Data Mining
  * Professor Robert J. Brunner
  * http://lcdm.astro.illinois.edu/
- * University of Illinois Urbana-Champagne
+ * University of Illinois Urbana-Champaign
  *
  * Originally published: http://lcdm.astro.illinois.edu/papers/sdssdr7-aps.html
  *
@@ -54,9 +54,16 @@ class AngularPowerSpectrum {
 
   AngularPowerSpectrum();
   ~AngularPowerSpectrum();
+  void run();
   
  private:
-
+  void CalculateCovariance();
+  void CalculateSignal();
+  void KLCompression();
+  void EstimateC();
+  void ExpectedCovariance();
+  void CalculateFisher();
+  void RecalculateC_L();
 };
 
 #endif
