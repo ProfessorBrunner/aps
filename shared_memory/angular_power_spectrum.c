@@ -169,7 +169,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   while (W[k] > 1.0) {
   //  printf("#Keeping %lf%% of the total signal to noise.\n", 100.0*kSnrRetained);
   //  while (signal_sum < total_snr*kSnrRetained) {
+#   ifndef APS_SUPPRESS_MATRIX_STDOUT
     printf("%ld %lf\n", k, W[k]);
+#   endif
     fprintf(output_KL, "%ld %lf\n", k, W[k]);
     signal_sum += W[k];
     k++;
@@ -198,7 +200,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   }
   for (i=0; i<k; i++) {
     overdensity[i] = test1[i];
+#   ifndef APS_SUPPRESS_MATRIX_STDOUT
     printf("%d %lf\n", i, overdensity[i]);
+#   endif
     fprintf(output_KL, "%d %lf\n", i, overdensity[i]);
   }
   
@@ -412,7 +416,9 @@ int print_Fisher(double *F, int iteration, FILE *output_Fisher)
   printf("#Printing out Fisher Information matrix for iteration %d.\n", iteration);
   for (l=0; l<g_bands; l++) {
     for (l_prime=0; l_prime<g_bands; l_prime++) {
+#     ifndef APS_SUPPRESS_MATRIX_STDOUT
       printf("%e ", F[l+l_prime*g_bands]);
+#     endif
       fprintf(output_Fisher, "%e ", F[l+l_prime*g_bands]);
     }
     printf("\n");
@@ -461,7 +467,9 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   printf("#Printing out Window matrix.\n");  
   for (l_prime=0; l_prime<g_bands; l_prime++) {
     for (l=0; l<g_bands; l++) {
+#     ifndef APS_SUPPRESS_MATRIX_STDOUT
       printf("%lf ", W[l*g_bands+l_prime]);
+#     endif
       fprintf(output_Window, "%lf ", W[l*g_bands+l_prime]);
     }
     printf("\n");
@@ -488,7 +496,9 @@ int print_values(double *C, int *C_start, int *C_stop, double *C_change, double 
 
   printf("#All C[l] have been recalculated for iteration = %d.\n", iteration);
   for (l=0; l<g_bands; l++) {
+#   ifndef APS_SUPPRESS_MATRIX_STDOUT
     printf("%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*g_bands]), C_change[l]);
+#   endif
     fprintf(output_C, "%d %d %d %d %lf %lf %lf\n", l, (C_stop[l]+C_start[l])/2, C_start[l], C_stop[l], C[l], sqrt(F[l+l*g_bands]), C_change[l]);
   }
 

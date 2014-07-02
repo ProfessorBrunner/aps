@@ -30,6 +30,28 @@
 
 class AngularPowerSpectrum {
  public:
+  ///Number of Pixels. Number of pixels in the map.
+  int bins_;
+  /// Total number of bands.
+  int bands_;
+  ///Number of Galaxies. Total galaxies used to calculate overdensity.
+  double total_galaxies_;
+  ///Total Area. Total area of usable pixels.
+  double omega_;
+  /// c_[i] combined coefficient for the band from c_start_[i] to c_end_[i]
+  double *c_;
+  /// c_start_[i] is the begining of i-th band
+  int *c_start_;
+  /// c_start_[i] is the end of i-th band
+  int *c_end_;
+  ///Overdensity vector. Overdensity of pixels at ra_, dec_ 
+  double *overdensity_;
+  ///Right Ascension. Pixel position in astronomical coordinates.
+  double *ra_;
+  ///Declination. Pixel position in astronomical coordinates.
+  double *dec_;
+
+
   AngularPowerSpectrum();
   ~AngularPowerSpectrum();
   

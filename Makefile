@@ -25,15 +25,20 @@ TEST_NSIDE=8
 FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
 DAT=data/CL_$(TEST_NSIDE)_lcdm.dat
 
-test: profile  $(FITS) $(DAT)
-	./shared_memory/KL_spectrum $(FITS) $(DAT)
+test: shared_memory/KL_spectrum_output_test  $(FITS) $(DAT)
+	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
 
-%.fits: data test/create_mock.py
+shared_memory/KL_spectrum_output_test:
+	$(MAKE) -C ./shared_memory KL_spectrum_output_test
 
-%.dat: data test/create_mock.py
+%.fits: data test/generate_inputs.py
+	@:
 
+%.dat: data test/generate_inputs.py
+	@:
+	
 data: .FORCE
-	./test/create_mock.py ./test/catalog.dat ./data $(TEST_NSIDE)
+	./test/generate_inputs.py -c ./test/catalog.dat ./data $(TEST_NSIDE)
 
 profile: .FORCE
 	$(MAKE) -C ./shared_memory profile

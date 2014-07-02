@@ -32,6 +32,9 @@ all: KL_spectrum
 KL_spectrum:  $(SOURCES) $(LIBS)
 	$(CC) $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
 
+KL_spectrum_output_test: $(SOURCES) $(LIBS)
+	$(CC) -DAPS_OUTPUT_TEST -DAPS_SUPPRESS_MATRIX_STDOUT $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
+
 #Haven't needed to use this
 initialize: .FORCE
 	$(MKLROOT)/bin/mklvars.sh intel64 
