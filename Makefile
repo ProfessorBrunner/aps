@@ -23,10 +23,11 @@ distributed_memory: .FORCE
 
 TEST_NSIDE=8
 FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
-DAT=data/CL_$(TEST_NSIDE)_lcdm.dat
+DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
 
 test: shared_memory/KL_spectrum_output_test  $(FITS) $(DAT)
 	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
+	./test/compare_test_directories.py data/standard data/test_shared_CL_$(TEST_NSIDE)_lcdm
 
 shared_memory/KL_spectrum_output_test:
 	$(MAKE) -C ./shared_memory KL_spectrum_output_test
@@ -34,7 +35,7 @@ shared_memory/KL_spectrum_output_test:
 %.fits: data test/generate_inputs.py
 	@:
 
-%.dat: data test/generate_inputs.py
+%.bands: data test/generate_inputs.py
 	@:
 	
 data: .FORCE

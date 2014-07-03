@@ -125,6 +125,8 @@ def main():
         help="generate random dataset with N_RANDOM galaxies", nargs=1)
     parser.add_argument("-c", "--catalog", nargs=1, dest="catalog_file",
         help="path to catalog.dat")
+    parser.add_argument("-n", "--name", nargs=1, dest="file_name",
+        help="name of output file")
     args = parser.parse_args()
 
     #Check Arguments
@@ -140,28 +142,31 @@ def main():
     nside = args.nside
     data_dir = args.data_directory
 
-    #Generate output files
+    if args.catalog_file and args.n_random:
+        print "Will only write one output at a time"
+
+    if args.file_name:
+        bands_name = "{}/{}.bands".format(data_dir, args.file_name[0])
+        fits_name = "{}/{}.fits".format(data_dir, args.file_name[0])
+
     if args.catalog_file:
         t, p = load_catalog(args.catalog_file[0])
         M, bands = generate_map(t, p, nside, plot=args.plot)
-        #Write bands
-        write_bands("{}/CL_{}_lcdm.dat".format(data_dir, nside),
-            bands)
-        #Write overdensity map
-        fits_keys = {"NGALAXY":(len(t), "Total number of galaxies")}
-        write_fits("{}/{}_{}_lcdm.fits".format(data_dir, nside, len(t)),
-            M, fits_keys)
-
-    if args.n_random:
+        if not args.file_name:
+            bands_name = "{}/CL_{}_lcdm.bands".format(data_dir, nside)
+            fits_name = "{}/{}_{}_lcdm.fits".format(data_dir, nside, len(t))
+    else:
         t, p = random_galaxies(args.n_random)
-        #Write bands
         M, bands = generate_map(t, p, nside, plot=args.plot)
-        write_bands("{}/CL_{}_random.dat".format(data_dir, nside),
-            bands)
-        #Write overdensity map
-        fits_keys = {"NGALAXY":(len(t), "Total number of galaxies")}
-        write_fits("{}/{}_{}_random.fits".format(data_dir, nside, len(t)),
-            M, fits_keys)
+        if not args.file_name:
+            bands_name = "{}/CL_{}_random.bands".format(data_dir, nside)
+            fits_name = "{}/{}_{}_random.fits".format(data_dir, nside, len(t))
+    
+    #Write bands
+    write_bands(bands_name, bands)
+    #Write overdensity map
+    fits_keys = {"NGALAXY":(len(t), "Total number of galaxies")}
+    write_fits(fits_name, M, fits_keys)
 
 if __name__ == "__main__":
     main()
