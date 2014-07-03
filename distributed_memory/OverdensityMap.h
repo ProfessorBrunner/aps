@@ -26,14 +26,13 @@
 
 #ifndef APS_OVERDENSITYMAP_H_
 #define APS_OVERDENSITYMAP_H_
-<<<<<<< HEAD
+//<<<<<<< HEAD
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
  #endif
-=======
+//=======
 
-#define M_PI 3.14159265358979323846
->>>>>>> 52a5d785d57211f067d314277244727024e19b15
+//>>>>>>> 52a5d785d57211f067d314277244727024e19b15
 
 /**
  *  Overdensity Map. Loads the overdensity map and header data using fitsio 
