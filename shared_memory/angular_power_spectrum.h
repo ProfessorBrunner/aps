@@ -17,7 +17,8 @@
 #define kContamination 0.0             // stellar contamination
 #define kNumThreads 16                 // number of processors
 #define KLargeNumber 1000000.0         // Large number to remove the mean mode in KL compression
-#define APS_WRITE_TEST
+//#define APS_OUTPUT_TEST              // enabled through gcc flag
+//#define APS_SUPPRESS_MATRIX_STDOUT   // enabled through gcc flag
 
 /* Defined in *_spectrum.c */
 // Total number of usable pixels.

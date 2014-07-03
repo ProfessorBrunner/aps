@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   sprintf(filename, "%s/output", output_root);
   if (stat(filename, &st) == -1) mkdir(filename, 0766);
 
-# ifdef APS_WRITE_TEST
+# ifdef APS_OUTPUT_TEST
   sprintf(test_root, "%s/test_shared_%s", output_root, name);
   char_position = strrchr(test_root, '.');
   if (char_position) *char_position = '\0';
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   signaltime = calculate_signal(signal, cos_angle, C_start, C_stop);
   toc(&time_function);
   printf("#Calculated signal.  Elapsed time = %g seconds.\n", time_function.elapsed);
-# ifdef APS_WRITE_TEST
+# ifdef APS_OUTPUT_TEST
   save_raw_double_array(test_root, "overdensity", overdensity, g_bins);
   save_raw_double_array(test_root, "signal", signal, g_bins*g_bins*g_bands);
 # endif
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
   KL_compression(overdensity, signal, noise, data_covariance, C, output_KL); 
   toc(&time_function);
   printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
-# ifdef APS_WRITE_TEST
+# ifdef APS_OUTPUT_TEST
   save_raw_double_array(test_root, "kl_overdensity", overdensity, g_bins);
   save_raw_double_array(test_root, "kl_signal", signal, g_bins*g_bins*g_bands);
   save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
@@ -179,7 +179,23 @@ int main(int argc, char *argv[])
     assert(fflush(NULL)==0);
     toc(&time_find_c_iteration);
     printf("#Calculated iteration %d.  Elapsed time = %g seconds.\n", n, time_find_c_iteration.elapsed);
+#   ifdef APS_OUTPUT_TEST
+    //difference doesn't change
+    if (n == 1) save_raw_double_array(test_root, "difference", difference, g_bins*g_bins);
+    sprintf(filename, "iter_%d_covariance_model", n);
+    save_raw_double_array(test_root, filename, model_covariance, g_bins*g_bins);
+    sprintf(filename, "iter_%d_average", n);
+    save_raw_double_array(test_root, filename, average, g_bands);
+    sprintf(filename, "iter_%d_A", n);
+    save_raw_double_array(test_root, filename, A, g_bins*g_bins*g_bands);
+    sprintf(filename, "iter_%d_B", n);
+    save_raw_double_array(test_root, filename, B, g_bins*g_bins*g_bands);
+    sprintf(filename, "iter_%d_F", n);
+    save_raw_double_array(test_root, filename, F, g_bands*g_bands);
+    sprintf(filename, "iter_%d_C", n);
+    save_raw_double_array(test_root, filename, C, g_bands);
 
+#   endif
   }
 
   toc(&time_total);
