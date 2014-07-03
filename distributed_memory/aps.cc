@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 #include <iostream>
-//#include "elemental-lite.hpp"
+#include "elemental-lite.hpp"
 #include "OverdensityMap.h"
 #include "BandPower.h"
 
@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
               << "./aps [overdensity.fits] [bandpowers.bin]" << std::endl;
     return EXIT_FAILURE;
   }
-  OverdensityMap map;
-  map.LoadFromFile(argv[1]);
+  OverdensityMap mp;
+  mp.LoadFromFile(argv[1]);
 
   BandPower bp;
   bp.LoadFromFile(argv[2]);

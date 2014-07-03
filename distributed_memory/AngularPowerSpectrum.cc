@@ -30,7 +30,7 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-//#include "elemental-lite.hpp"
+#include "elemental-lite.hpp"
 #include "chealpix.h"
 #include "fitsio.h"
 #include "AngularPowerSpectrum.h"
@@ -46,38 +46,38 @@ AngularPowerSpectrum::~AngularPowerSpectrum() {}
  */
 void AngularPowerSpectrum::run() {}
 
-/*
+/**
  * Build Covariance Matrix
  */
 void CalculateCovariance() {}
 
-/*
+/**
  * Build Signal Matrix
  */
 void CalculateSignal() {}
 
-/*
+/**
  * Karhunen-Loeve Compression
  */
 void KLCompression() {}
 
-/*
+/**
  * Estimates the APS given Signal & Covariance Matrices
  */
 void EstimateC() {}
 
-/*
+/**
  * Build Expected Covariance Matrix based on C_l
  * Previously named calculate_difference 
  */
 void ExpectedCovariance() {}
 
-/*
+/**
  * Build Fisher Matrix & Weighted Average
  */
 void CalculateFisher() {}
 
-/*
+/**
  * Recalculate C_l from the Fisher Matrix
  */
 void RecalculateC_L() {}

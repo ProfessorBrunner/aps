@@ -26,8 +26,9 @@
 
 #ifndef APS_OVERDENSITYMAP_H_
 #define APS_OVERDENSITYMAP_H_
-
+#ifndef M_PI
 #define M_PI (3.14159265358979323846)
+ #endif
 
 /**
  *  Overdensity Map. Loads the overdensity map and header data using fitsio 
@@ -53,11 +54,11 @@ class OverdensityMap {
   double omega_;
 
   ///  Conversion factor for degrees to radians
-  static const double kDegreeToRadian = M_PI/180.0;
+  static constexpr double kDegreeToRadian = M_PI/180.0;
   ///  Conversion factor for degrees to radians
-  static const double kRadianToDegree = 180.0/M_PI;
+  static constexpr double kRadianToDegree = 180.0/M_PI;
   /// Square degrees in a sphere
-  static const double kSquareDegreePerSphere = 129600.0/M_PI;
+  static constexpr double kSquareDegreePerSphere = 129600.0/M_PI;
 
   /**
    *  Initialize members to zero.
@@ -96,5 +97,6 @@ class OverdensityMap {
   void ReadHealpixMap();
 
 };
+
 
 #endif
