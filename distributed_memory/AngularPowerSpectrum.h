@@ -61,6 +61,18 @@ class AngularPowerSpectrum {
   DistMatrix<double> *sum_;
   ///
   Grid *grid_;
+  /// Grid 
+  Int grid_height_;
+  /// Grid 
+  Int grid_width_;
+  /// Grid 
+  Int grid_row_;
+  /// Grid 
+  Int grid_col_;
+  ///  
+  Int local_height_;
+  ///  
+  Int local_width_;
 
   ///default constructor
   AngularPowerSpectrum();
@@ -76,6 +88,9 @@ class AngularPowerSpectrum {
   
  private:
   void CalculateCovariance();
+  /**
+   * Build Signal Matrix
+   */
   void CalculateSignal();
   void KLCompression();
   void EstimateC();

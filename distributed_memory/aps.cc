@@ -105,5 +105,7 @@ int main(int argc, char *argv[]) {
   delete mp;
   delete bp;
 
+  aps.run();
+
   return EXIT_SUCCESS;
 }

@@ -46,6 +46,7 @@ using namespace elem;
 AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands, 
     double total_galaxies, double omega, Grid &grid)
     :  bins_(bins),
+       bands_(bands),
        total_galaxies_(total_galaxies),
        omega_(omega),
        signal_(new std::vector<DistMatrix<double>>(bands)),
@@ -54,46 +55,75 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        c_start_(new int[bands]),
        c_end_(new int[bands]),
        ra_(new double[bins]),
-       dec_(new double[bins]) {
+       dec_(new double[bins]),
+       grid_height_(grid.Height()),
+       grid_width_(grid.Width()),
+       grid_row_(grid.Row()),
+       grid_col_(grid.Col()),
+       local_height_(Length(bins*bins, grid_row_, grid_height_)),
+       local_width_(Length(bins*bins, grid_col_, grid_width_)) {
 }
 
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
 
-void AngularPowerSpectrum::run() {}
+void AngularPowerSpectrum::run() {
+  CalculateSignal();
+}
 
 /**
  * Build Covariance Matrix
  */
-void CalculateCovariance() {}
+void AngularPowerSpectrum::CalculateCovariance() {}
 
-/**
- * Build Signal Matrix
- */
-void CalculateSignal() {}
+
+void AngularPowerSpectrum::CalculateSignal() {
+  std::vector<double> cos_values(bins_*bins_, 0.0f);
+  std::vector<double> previous_previous(bins_*bins_, 1.0f);
+  std::vector<double> previous = cos_values;
+  std::vector<double> local_sum = cos_values;
+  int k = 0;
+  for (int ell = 0; ell < c_end_[bands_-1]; ++ell) {
+    if (ell == 0) {
+      std::vector<double> local_signal(bins_*bins_, 0.0f);
+
+      continue;
+    }
+    if (ell ==1){
+      continue;
+    }
+    if (ell>=c_end_[k]){
+      ell = c_start_[++k];      
+      std::vector<double> local_signal(bins_*bins_, 0.0f);
+    }
+    double coefficient = (2 * ell + 1)/(2 * ell * (ell + 1));
+
+
+  }
+}
 
 /**
  * Karhunen-Loeve Compression
  */
-void KLCompression() {}
+void AngularPowerSpectrum::KLCompression() {}
 
 /**
  * Estimates the APS given Signal & Covariance Matrices
  */
-void EstimateC() {}
+void AngularPowerSpectrum::EstimateC() {}
 
 /**
  * Build Expected Covariance Matrix based on C_l
  * Previously named calculate_difference 
  */
-void ExpectedCovariance() {}
+void AngularPowerSpectrum::ExpectedCovariance() {}
 
 /**
  * Build Fisher Matrix & Weighted Average
  */
-void CalculateFisher() {}
+void AngularPowerSpectrum::CalculateFisher() {}
 
 /**
  * Recalculate C_l from the Fisher Matrix
  */
-void RecalculateC_L() {}
+void AngularPowerSpectrum::RecalculateC_L() {}
