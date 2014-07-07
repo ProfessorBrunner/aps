@@ -27,6 +27,11 @@
 #ifndef APS_ANGULARPOWERSPECTRUM_H_
 #define APS_ANGULARPOWERSPECTRUM_H_
 
+#include <vector>
+
+#include "elemental-lite.hpp"
+
+using namespace elem;
 
 class AngularPowerSpectrum {
  public:
@@ -50,10 +55,23 @@ class AngularPowerSpectrum {
   double *ra_;
   ///Declination. Pixel position in astronomical coordinates.
   double *dec_;
+  ///
+  std::vector<DistMatrix<double>> *signal_;
+  ///
+  DistMatrix<double> *sum_;
+  ///
+  Grid *grid_;
 
-
+  ///default constructor
   AngularPowerSpectrum();
+  ///non root constructor
+  AngularPowerSpectrum(int bins, int bands, double total_galaxies, 
+    double omega, Grid &grid);
+  ///destructor
   ~AngularPowerSpectrum();
+  /**
+   * Called from aps' main()
+   */
   void run();
   
  private:

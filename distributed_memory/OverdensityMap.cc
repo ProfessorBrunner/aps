@@ -147,6 +147,10 @@ void OverdensityMap::ReadHealpixMap() {
       dec_[j] = 90.0 - theta*kRadianToDegree;
       if (ra_[j] < 0.0) ra_[j] += 360.0;
       overdensity_[j] = healpix_map_[i];
+
+      // if (j < 20){
+      //   std::cout << ra_[j] << " " << dec_[j] << std::endl;
+      // } 
       ++j;
     }
   }

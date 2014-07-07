@@ -26,24 +26,40 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <vector>
 
 #include <iostream>
 #include <cstring>
 #include <string>
+
 #include "elemental-lite.hpp"
 #include "chealpix.h"
 #include "fitsio.h"
+
 #include "AngularPowerSpectrum.h"
 
-//constructor
-AngularPowerSpectrum::AngularPowerSpectrum(){}
 
-//destructor
+using namespace elem;
+
+//AngularPowerSpectrum::AngularPowerSpectrum() {}
+
+AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands, 
+    double total_galaxies, double omega, Grid &grid)
+    :  bins_(bins),
+       total_galaxies_(total_galaxies),
+       omega_(omega),
+       signal_(new std::vector<DistMatrix<double>>(bands)),
+       grid_(&grid),
+       c_(new double[bands]),
+       c_start_(new int[bands]),
+       c_end_(new int[bands]),
+       ra_(new double[bins]),
+       dec_(new double[bins]) {
+}
+
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
-/**
- * Called from aps' main()
- */
+
 void AngularPowerSpectrum::run() {}
 
 /**
