@@ -33,18 +33,35 @@
 #include "OverdensityMap.h"
 #include "BandPower.h"
 
+ /*may not need this?
+#include ELEM_DIAGONALSCALE_INC
+#include ELEM_FROBENIUSNORM_INC
+#include ELEM_INFINITYNORM_INC
+#include ELEM_MAXNORM_INC
+#include ELEM_ONENORM_INC
+#include ELEM_SVD_INC
+#include ELEM_UNIFORM_INC*/
+using namespace std;
+using namespace elem;
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
+  Initialize(  argc, argv  );
   if (argc != 3) {
     std::cout << "Error: Expected 2 arguments" << std::endl
               << "Usage:" << std::endl
               << "./aps [overdensity.fits] [bandpowers.bin]" << std::endl;
     return EXIT_FAILURE;
   }
+
   OverdensityMap mp;
   mp.LoadFromFile(argv[1]);
 
   BandPower bp;
   bp.LoadFromFile(argv[2]);
+
+  //set algorithmic blocksize (default 128): SetBlocksize( int blocksize );
+  Grid g( mpi::COMM_WORLD );
+  DistMatrix<int> A(g);
+
   return EXIT_SUCCESS;
 }

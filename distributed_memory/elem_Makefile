@@ -1,0 +1,46 @@
+# Quadratic Estimation of Angular Power Spectrum
+# Parallel implementation
+
+
+#################
+# To Do: Link MPI and Elemental
+# Makefile from sample Elemental Code:
+# include /usr/local/conf/ElemVars
+#
+# SVD: SVD.cpp
+#	${CXX} ${ELEM_COMPILE_FLAGS} $< -o $@ ${ELEM_LINK_FLAGS} ${ELEM_LIBS}
+#################
+include /usr/local/conf/ElemVars
+CC=gcc
+CXX=g++
+MKLROOT=/home/uiucinfo/intel/composer_xe_2013_sp1.0.080/mkl/
+HEALPIXROOT=/usr/local/src/Healpix_3.11/
+CFLAGS=-O3 -fopenmp -m32 -I$(MKLROOT)/include -I$(HEALPIXROOT)/include 
+
+LDFLAGS=-Wl,--start-group $(MKLROOT)/lib/ia32/libmkl_intel.a $(MKLROOT)/lib/ia32/libmkl_core.a $(MKLROOT)/lib/ia32/libmkl_gnu_thread.a -Wl,--end-group
+#With /opt/intel/composer_xe_2011_sp1.11.339/mkl these flags worked:
+#LDFLAGS=-Wl,-Bstatic -Wl,--start-group -L$(MKLROOT)/lib/intel64  -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -liomp5 -Wl,--end-group -Wl,-Bdynamic
+LDFLAGS+=-L$(HEALPIXROOT)/lib 
+LDLIBS=-ldl -lpthread -lm -lchealpix -lcfitsio
+
+SOURCES=AngularPowerSpectrum.cc aps.cc OverdensityMap.cc BandPower.cc
+LIBS=AngularPowerSpectrum.h BandPower.h OverdensityMap.h
+
+all: aps
+
+aps:  $(SOURCES) $(LIBS)
+	$(CXX) $(CFLAGS) ${ELEM_COMPILE_FLAGS} $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) ${ELEM_LINK_FLAGS} $(LDLIBS) ${ELEM_LIBS}
+
+#Haven't needed to use this
+initialize: .FORCE
+	$(MKLROOT)/bin/mklvars.sh intel64
+
+#################################################################################
+# Misc
+#################################################################################
+.FORCE:
+
+clean: .FORCE
+	rm aps
+ 
+
