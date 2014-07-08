@@ -27,6 +27,10 @@
 #ifndef APS_ANGULARPOWERSPECTRUM_H_
 #define APS_ANGULARPOWERSPECTRUM_H_
 
+#ifndef M_PI
+#define M_PI (3.14159265358979323846)
+#endif
+
 #include <vector>
 
 #include "elemental-lite.hpp"
@@ -56,7 +60,7 @@ class AngularPowerSpectrum {
   ///Declination. Pixel position in astronomical coordinates.
   double *dec_;
   ///
-  std::vector<DistMatrix<double>> *signal_;
+  std::vector<DistMatrix<double>> signal_;
   ///
   DistMatrix<double> *sum_;
   ///
@@ -73,6 +77,10 @@ class AngularPowerSpectrum {
   Int local_height_;
   ///  
   Int local_width_;
+
+  ///  Conversion factor for degrees to radians
+  static constexpr double kDegreeToRadian = M_PI/180.0;
+
 
   ///default constructor
   AngularPowerSpectrum();
@@ -97,6 +105,19 @@ class AngularPowerSpectrum {
   void ExpectedCovariance();
   void CalculateFisher();
   void RecalculateC_L();
+
+  inline void VectorPlusEqualsVector(std::vector<double> &a, std::vector<double> &b) {
+    std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::plus<double>());
+  }
+
+  inline void VectorTimesEqualsVector(std::vector<double> &a, std::vector<double> &b) {
+    std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::multiplies<double>());
+  }
+
+  inline void VectorTimesScalar(std::vector<double> &v, double a) {
+    std::transform(v.begin(), v.end(), v.begin(), 
+        std::bind1st(std::multiplies<double>(), a));
+  }
 };
 
 #endif
