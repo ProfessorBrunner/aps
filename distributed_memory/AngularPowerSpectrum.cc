@@ -44,8 +44,6 @@
 
 using namespace elem;
 
-//AngularPowerSpectrum::AngularPowerSpectrum() {}
-
 AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands, 
     double total_galaxies, double omega, Grid &grid)
     :  bins_(bins),
@@ -78,22 +76,16 @@ void AngularPowerSpectrum::run() {
   Barrier();
   double elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
-  //if (is_root_) std::cout  << signal_.size() << std::endl;
-  //Print(signal_[2], "Signal_0");
 }
 
-/**
- * Build Covariance Matrix
- */
-void AngularPowerSpectrum::CalculateCovariance() {}
-
-
 void AngularPowerSpectrum::CalculateSignal() {
-  // TODO(Alex): This code doesn't take advantage of symmetry. It could
-  // also calculate each band in i-j blocks to take better advantage of memory
+  //Initialize Signal and Sum matrices
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   sum_ = DistMatrix<double>(*grid_);
+
   //Build Cosine Matrix
+  /* TODO(Alex): This code doesn't take advantage of symmetry. It could
+   * also calculate each band in i-j blocks to take better advantage of memory */
   std::vector<double> cos_values(local_height_ * local_width_, 0.0f);
   for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
       // Form global column index from local column index
@@ -107,8 +99,6 @@ void AngularPowerSpectrum::CalculateSignal() {
               cos(dec_[j] * kDegreeToRadian) * cos((ra_[i] - ra_[j]) * kDegreeToRadian);
       }
   }
-
-
 
   //Initialize vectors for Legendre Calculation & DistMatrix operations
   std::vector<double> previous_previous(local_height_ * local_width_, 1.0f);
@@ -139,12 +129,13 @@ void AngularPowerSpectrum::CalculateSignal() {
     previous = current;
 
     if (ell < c_start_[k]) continue;
+
     //Set local_signal to current
     VectorTimesScalar(current, coefficient);
     VectorPlusEqualsVector(local_signal[k], current);
 
-
     if (ell == c_end_[k]){
+      //Attach local_signal data to the distributed signal matrix
       if (is_root_) {
         std::cout << "Attaching band " << k << " modes: " << c_start_[k] <<
             " to " << c_end_[k] << std::endl;
@@ -152,24 +143,21 @@ void AngularPowerSpectrum::CalculateSignal() {
       signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal[k].data(), 
           local_height_ );
 
-
+      //Sum matrix calculation: current used as a temporary vector with local_signal's data
       current = local_signal[k];
       VectorTimesScalar(current, c_[k]);
       VectorPlusEqualsVector(local_sum, current);
 
+      //Save matrix to file
 #     ifdef APS_OUTPUT_TEST
         SaveDistributedMatrix("signal" + std::to_string(k), &signal_[k], bins_, bins_);
 #     endif
 
       ++k;
-      //local_signal[k] = std::vector<double>(local_height_ * local_width_, 0.0f);
     }
-
-
   }
-  sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );
-  //Print(*sum_, "Sum");
-  
+  //Attach local_sum data to the distributed sum matrix
+  sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );  
 }
 
 void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, 
@@ -183,44 +171,22 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 }
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
-    DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
-  // std::ofstream outfile (test_directory_ + name + ".dat", 
-  //     std::ios::binary | std::ofstream::app );
-  // double number;
-  // if (is_root_){
-  //   std::cout << "Writing test file " << name << " to: " << test_directory_ << name << std::endl;
-  // }
-  // for (int i = 0; i < num_rows; ++i){
-  //   for (int j = 0; j < num_cols; ++j){
-  //     number = matrix->Get(i,j);
-  //     outfile.write(reinterpret_cast<char *>(&number), sizeof(number));
-  //   }
-  // }
+    DistMatrix<double> *matrix) {
   Write(*matrix, test_directory_ + name, BINARY_FLAT);
 }
 
 
-void AngularPowerSpectrum::KLCompression() {
+/*********************
+ * To Do:
+ ********************/
+void AngularPowerSpectrum::CalculateCovariance() {}
 
-}
+void AngularPowerSpectrum::KLCompression() {}
 
-/**
- * Estimates the APS given Signal & Covariance Matrices
- */
 void AngularPowerSpectrum::EstimateC() {}
 
-/**
- * Build Expected Covariance Matrix based on C_l
- * Previously named calculate_difference 
- */
 void AngularPowerSpectrum::ExpectedCovariance() {}
 
-/**
- * Build Fisher Matrix & Weighted Average
- */
 void AngularPowerSpectrum::CalculateFisher() {}
 
-/**
- * Recalculate C_l from the Fisher Matrix
- */
 void AngularPowerSpectrum::RecalculateC_L() {}

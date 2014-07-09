@@ -60,34 +60,33 @@ class AngularPowerSpectrum {
   double *ra_;
   ///Declination. Pixel position in astronomical coordinates.
   double *dec_;
-  ///
+  /// A boolean check if this process is the root.
   bool is_root_;
-  ///
+  /// A vector of DistMatrices representing the signal matrix.
   std::vector<DistMatrix<double>> signal_;
-  ///
+  /// Sum matrix. Calculated in calculate_signal. Used in KL-compression.
   DistMatrix<double> sum_;
-  ///
+  /// Communication grid. Used for Distributed Matrix functions.
   Grid *grid_;
-  /// Grid 
+  /// Grid Height
   Int grid_height_;
-  /// Grid 
+  /// Grid Width
   Int grid_width_;
-  /// Grid 
+  /// Grid Row Align
   Int grid_row_;
-  /// Grid 
+  /// Grid Column Align
   Int grid_col_;
-  ///  
+  ///  The local height of a DistMatrix
   Int local_height_;
-  ///  
+  ///  The local width of a DistMatrix
   Int local_width_;
-  ///
+  ///  The local slice of the signal matrix in a vector of vectors.
   std::vector<std::vector<double>> local_signal;
-  ///
+  ///  The local slice of the sum matrix.
   std::vector<double> local_sum;
-
-  ///
+  ///  Output directory for writing
   std::string output_directory_;
-  ///
+  ///  Test directory for writing
   std::string test_directory_;
 
   ///  Conversion factor for degrees to radians
@@ -101,45 +100,80 @@ class AngularPowerSpectrum {
     double omega, Grid &grid);
   ///destructor
   ~AngularPowerSpectrum();
+
   /**
    * Called from aps' main()
+   * Root function that calls all other functions.
    */
   void run();
   
  private:
-  void CalculateCovariance();
+
   /**
-   * Build Signal Matrix
+   * Build Covariance Matrix
    */
+  void CalculateCovariance();
 
+  /**
+   * Build Signal and Sum Matrices
+   */
   void CalculateSignal();
-  void KLCompression();
-  void EstimateC();
-  void ExpectedCovariance();
-  void CalculateFisher();
-  void RecalculateC_L();
-  void SaveRawArray();
-  void PrintRawArray(std::vector<double> v, int length, int height);
-  void SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix, Int num_rows, Int num_cols);
 
+  /**
+   * Perform Karhunen-Loeve Compression on the data vectors and matrices
+   */
+  void KLCompression();
+
+  /**
+   * Estimates the APS given Signal & Covariance Matrices
+   */
+  void EstimateC();
+
+  /**
+   * Build Expected Covariance Matrix based on C_l
+   * Previously named calculate_difference 
+   */
+  void ExpectedCovariance();
+
+  /**
+   * Build Fisher Matrix & Weighted Average
+   */
+  void CalculateFisher();
+
+  /**
+   * Recalculate C_l from the Fisher Matrix
+   */
+  void RecalculateC_L();
+
+  /**
+   * Prints the given vector
+   */
+  void PrintRawArray(std::vector<double> v, int length, int height);
+
+  /*
+   * Saves the DistMatrix with the given file name using Elemental's Write function
+   */
+  void SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix);
+
+  /// Local barrier method
   inline void Barrier(){
     mpi::Barrier(grid_->Comm());
   }
 
+  /// Local += method for vectors
   inline void VectorPlusEqualsVector(std::vector<double> &a, std::vector<double> &b) {
     std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::plus<double>());
   }
 
+  ///Local *= method for vectors
   inline void VectorTimesEqualsVector(std::vector<double> &a, std::vector<double> &b) {
     std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::multiplies<double>());
   }
 
+  ///Local vector  *= scalar method
   inline void VectorTimesScalar(std::vector<double> &v, double a) {
     std::transform(v.begin(), v.end(), v.begin(), 
         std::bind1st(std::multiplies<double>(), a));
   }
-
-
 };
-
 #endif
