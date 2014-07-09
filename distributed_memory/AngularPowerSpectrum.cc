@@ -78,13 +78,12 @@ void AngularPowerSpectrum::run() {
  */
 void AngularPowerSpectrum::CalculateCovariance() {}
 
-
+/**
+ * Calculate Signal Matrix from cosine matrix and Legendre polynomials
+ */
 void AngularPowerSpectrum::CalculateSignal() {
-  bool i_have_it = false;
-
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
-
-
+  //Build Cosine Matrix
   std::vector<double> cos_values(local_height_ * local_width_, 0.0f);
   for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
       // Form global column index from local column index
@@ -98,52 +97,36 @@ void AngularPowerSpectrum::CalculateSignal() {
               cos(dec_[j] * kDegreeToRadian) * cos((ra_[i] - ra_[j]) * kDegreeToRadian);
       }
   }
-
-    if (grid_->Rank() == 0) {
-      PrintRawArray(cos_values, 10, 1);
-    }
-
+  //Initialize vectors for Legendre Calculation & DistMatrix operations
   std::vector<double> previous_previous(local_height_ * local_width_, 1.0f);
   std::vector<double> previous = cos_values;
   std::vector<double> current;
   std::vector<double> local_sum = cos_values;
   std::vector<double> local_signal;
-
+  //Begin Legendre Calculation
   int k = 0;
   local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
   for (int ell = 1; ell < c_end_[bands_-1]; ++ell) {
     double coefficient = ((double) 2 * ell + 1)/((double) 2 * ell * (ell + 1));
+    //Base case: ell = 1
     if (ell == 1){
       current = cos_values;
       VectorTimesScalar(current, coefficient);
       if (ell >= c_start_[k]) VectorPlusEqualsVector(local_signal, current);
       continue;
     }
-
-
+    //current = current * cos_values * previous + (previous_previous * (1-ell/ell))
     current = std::vector<double>(local_height_ * local_width_, ((double) 2 * ell - 1) / (double) ell);
     VectorTimesEqualsVector(current, cos_values);
     VectorTimesEqualsVector(current, previous);
-
     VectorTimesScalar(previous_previous, (double)(1 - ell) / (double)ell);
-
     VectorPlusEqualsVector(current, previous_previous);
-
+    //Reset previous_previous and previous for next iteration
     previous_previous = previous;
     previous = current;
 
     if (ell < c_start_[k]) continue;
-
-    // if (grid_->Rank() == 0) {
-    //   std::cout << "Before: Mode " << ell << " coef: " << coefficient << std::endl;
-    //   PrintRawArray(previous, 10, 1);
-    // }
-    VectorTimesScalar(current, coefficient);
-    if (grid_->Rank() == 0) {
-      std::cout << "After: Mode " << ell << " coef: " << coefficient << std::endl;
-      PrintRawArray(previous, 10, 1);
-    }
-
+    //Set local_signal to current
     VectorPlusEqualsVector(local_signal, current);
 
 
