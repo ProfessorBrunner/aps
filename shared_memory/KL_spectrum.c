@@ -146,7 +146,10 @@ int main(int argc, char *argv[])
   printf("#Calculated signal.  Elapsed time = %g seconds.\n", time_function.elapsed);
 # ifdef APS_OUTPUT_TEST
   save_raw_double_array(test_root, "overdensity", overdensity, g_bins);
-  save_raw_double_array(test_root, "signal", signal, g_bins*g_bins*g_bands);
+  for (i = 0; i < g_bands; ++i){
+    sprintf(filename, "signal%d", i);
+    save_raw_double_array(test_root, filename, (signal + g_bins*g_bins*i), g_bins*g_bins);
+  }
 # endif
 
   // KL-Compress
@@ -156,7 +159,10 @@ int main(int argc, char *argv[])
   printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
 # ifdef APS_OUTPUT_TEST
   save_raw_double_array(test_root, "kl_overdensity", overdensity, g_bins);
-  save_raw_double_array(test_root, "kl_signal", signal, g_bins*g_bins*g_bands);
+  for (i = 0; i < g_bands; ++i){
+    sprintf(filename, "kl_signal%d", i);
+    save_raw_double_array(test_root, filename, (signal + g_bins*g_bins*i), g_bins*g_bins);
+  }
   save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
   save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
 # endif

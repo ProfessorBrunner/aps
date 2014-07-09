@@ -78,7 +78,8 @@ void AngularPowerSpectrum::run() {
   Barrier();
   double elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
-  //Print(signal_[0], "Signal_0");
+  //if (is_root_) std::cout  << signal_.size() << std::endl;
+  //Print(signal_[2], "Signal_0");
 }
 
 /**
@@ -157,7 +158,7 @@ void AngularPowerSpectrum::CalculateSignal() {
       VectorPlusEqualsVector(local_sum, current);
 
 #     ifdef APS_OUTPUT_TEST
-        SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
+        SaveDistributedMatrix("signal" + std::to_string(k), &signal_[k], bins_, bins_);
 #     endif
 
       ++k;
@@ -183,18 +184,19 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
     DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
-  std::ofstream outfile (test_directory_ + name + ".dat", 
-      std::ios::binary | std::ofstream::app );
-  double number;
-  if (is_root_){
-    std::cout << "Writing test file " << name << " to: " << test_directory_ << name << std::endl;
-  }
-  for (int i = 0; i < num_rows; ++i){
-    for (int j = 0; j < num_cols; ++j){
-      number = matrix->Get(i,j);
-      outfile.write(reinterpret_cast<char *>(&number), sizeof(number));
-    }
-  }
+  // std::ofstream outfile (test_directory_ + name + ".dat", 
+  //     std::ios::binary | std::ofstream::app );
+  // double number;
+  // if (is_root_){
+  //   std::cout << "Writing test file " << name << " to: " << test_directory_ << name << std::endl;
+  // }
+  // for (int i = 0; i < num_rows; ++i){
+  //   for (int j = 0; j < num_cols; ++j){
+  //     number = matrix->Get(i,j);
+  //     outfile.write(reinterpret_cast<char *>(&number), sizeof(number));
+  //   }
+  // }
+  Write(*matrix, test_directory_ + name, BINARY_FLAT);
 }
 
 
