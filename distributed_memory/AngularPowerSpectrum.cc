@@ -152,9 +152,9 @@ void AngularPowerSpectrum::CalculateSignal() {
           local_height_ );
 
 
-
-      VectorTimesScalar(local_signal[k], c_[k]);
-      VectorPlusEqualsVector(local_sum, local_signal[k]);
+      current = local_signal[k];
+      VectorTimesScalar(current, c_[k]);
+      VectorPlusEqualsVector(local_sum, current);
 
 #     ifdef APS_OUTPUT_TEST
         SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
