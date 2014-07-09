@@ -78,7 +78,7 @@ void AngularPowerSpectrum::run() {
   Barrier();
   double elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
-  //Print(signal_[2], "Signal_0");
+  Print(signal_[0], "Signal_0");
 }
 
 /**
@@ -161,7 +161,7 @@ void AngularPowerSpectrum::CalculateSignal() {
 #     endif
 
       ++k;
-      local_signal[k] = std::vector<double>(local_height_ * local_width_, 0.0f);
+      //local_signal[k] = std::vector<double>(local_height_ * local_width_, 0.0f);
     }
 
 
