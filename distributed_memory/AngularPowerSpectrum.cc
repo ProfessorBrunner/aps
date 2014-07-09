@@ -78,7 +78,7 @@ void AngularPowerSpectrum::run() {
   Barrier();
   double elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
-  Print(signal_[0], "Signal_0");
+  //Print(signal_[0], "Signal_0");
 }
 
 /**
@@ -183,7 +183,7 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
     DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
-  std::ofstream outfile (test_directory_ + name, 
+  std::ofstream outfile (test_directory_ + name + ".dat", 
       std::ios::binary | std::ofstream::app );
   double number;
   if (is_root_){
