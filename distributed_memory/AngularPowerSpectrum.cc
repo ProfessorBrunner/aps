@@ -121,11 +121,11 @@ void AngularPowerSpectrum::CalculateSignal() {
     }
 
 
-    current = std::vector<double>(local_height_ * local_width_, 2 * ell - 1);
+    current = std::vector<double>(local_height_ * local_width_, ((double) 2 * ell - 1) / (double) ell);
     VectorTimesEqualsVector(current, cos_values);
     VectorTimesEqualsVector(current, previous);
 
-    VectorTimesScalar(previous_previous, (float)(1 - ell) / (float)ell);
+    VectorTimesScalar(previous_previous, (double)(1 - ell) / (double)ell);
 
     VectorPlusEqualsVector(current, previous_previous);
 
@@ -139,10 +139,10 @@ void AngularPowerSpectrum::CalculateSignal() {
     //   PrintRawArray(previous, 10, 1);
     // }
     VectorTimesScalar(current, coefficient);
-    // if (grid_->Rank() == 0) {
-    //   std::cout << "After: Mode " << ell << " coef: " << coefficient << std::endl;
-    //   PrintRawArray(previous, 10, 1);
-    // }
+    if (grid_->Rank() == 0) {
+      std::cout << "After: Mode " << ell << " coef: " << coefficient << std::endl;
+      PrintRawArray(previous, 10, 1);
+    }
 
     VectorPlusEqualsVector(local_signal, current);
 
@@ -151,11 +151,7 @@ void AngularPowerSpectrum::CalculateSignal() {
     
     if (ell>=c_end_[k]){
       signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), local_height_ );
-      //std::cout << "value " << signal_[k].Get(0,0) << std::endl;
-      //Print(signal_[k], "Signal");
-      // std::cout << "value " << signal_[k].Get(0,0) << std::endl;
-      //if (grid_->Rank() == 1) PrintRawArray(current);
-      // if (i_have_it) std::cout << "local: " << local_signal[0] << std::endl;
+      Print(signal_[k], "Signal");
       return;
 
       ell = c_start_[++k];

@@ -44,6 +44,19 @@ print tabulate(norm_table)
 print "After Coefficient"
 print tabulate(coef_table)
 
+band = [coef_table[3],coef_table[4],coef_table[5]]
+
+band_result = [0 for x in range(len(samples))]
+for x in (3,4,5):
+	for i in range(len(samples)):
+		band_result[i] += coef_table[x][i+1]
+
+band_result = [0] + band_result
+temp = [[0]+[0 for s in samples]]
+temp.append(band_result)
+print tabulate(temp)
+#print temp
+
 # f_string = "cos({:3}) = {:6}  recuranceLegendre({:3}, {:2}) = {:6}  legendre(cos({:3}), {:2}) = {:6}"
 # for ii in xrange(0, 10):
 # 	#print "L_{}".format(ii)
