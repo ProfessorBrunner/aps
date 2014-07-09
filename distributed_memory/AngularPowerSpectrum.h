@@ -61,6 +61,8 @@ class AngularPowerSpectrum {
   ///Declination. Pixel position in astronomical coordinates.
   double *dec_;
   ///
+  bool is_root_;
+  ///
   std::vector<DistMatrix<double>> signal_;
   ///
   DistMatrix<double> *sum_;
@@ -105,6 +107,7 @@ class AngularPowerSpectrum {
   /**
    * Build Signal Matrix
    */
+
   void CalculateSignal();
   void KLCompression();
   void EstimateC();
@@ -114,6 +117,10 @@ class AngularPowerSpectrum {
   void SaveRawArray();
   void PrintRawArray(std::vector<double> v, int length, int height);
   void SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix, Int num_rows, Int num_cols);
+
+  inline void Barrier(){
+    mpi::Barrier(grid_->Comm());
+  }
 
   inline void VectorPlusEqualsVector(std::vector<double> &a, std::vector<double> &b) {
     std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::plus<double>());

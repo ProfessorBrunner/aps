@@ -63,14 +63,21 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        grid_row_(grid.Row()),
        grid_col_(grid.Col()),
        local_height_(Length(bins, grid_row_, grid_height_)),
-       local_width_(Length(bins, grid_col_, grid_width_)) {
+       local_width_(Length(bins, grid_col_, grid_width_)),
+       is_root_(grid.Rank() == 0) {
 }
 
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
 
 void AngularPowerSpectrum::run() {
+  Timer timer;
+  Barrier();
+  timer.Start();
   CalculateSignal();
+  Barrier();
+  double elapsed = timer.Stop();
+  if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
 }
 
 /**
@@ -83,6 +90,7 @@ void AngularPowerSpectrum::CalculateCovariance() {}
  */
 void AngularPowerSpectrum::CalculateSignal() {
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
+  sum_ = new DistMatrix<double>(*grid_);
   //Build Cosine Matrix
   std::vector<double> cos_values(local_height_ * local_width_, 0.0f);
   for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
@@ -97,15 +105,21 @@ void AngularPowerSpectrum::CalculateSignal() {
               cos(dec_[j] * kDegreeToRadian) * cos((ra_[i] - ra_[j]) * kDegreeToRadian);
       }
   }
+
+
+
   //Initialize vectors for Legendre Calculation & DistMatrix operations
   std::vector<double> previous_previous(local_height_ * local_width_, 1.0f);
   std::vector<double> previous = cos_values;
   std::vector<double> current;
-  std::vector<double> local_sum = cos_values;
+  std::vector<double> local_sum;
   std::vector<double> local_signal;
+
+
   //Begin Legendre Calculation
   int k = 0;
   local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
+  local_sum = std::vector<double>(local_height_ * local_width_, 0.0f);
   for (int ell = 1; ell <= c_end_[bands_-1]; ++ell) {
     double coefficient = ((double) 2 * ell + 1)/((double) 2 * ell * (ell + 1));
     //Base case: ell = 1
@@ -132,17 +146,22 @@ void AngularPowerSpectrum::CalculateSignal() {
 
 
     if (ell == c_end_[k]){
-      if (grid_->Rank() == 0) {
+      if (is_root_) {
         std::cout << "Attaching band " << k << " modes: " << c_start_[k] <<
             " to " << c_end_[k] << std::endl;
       }
       signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), 
           local_height_ );
+
+
+      VectorTimesScalar(local_signal, c_[k]);
+      VectorPlusEqualsVector(local_sum, local_signal);
+
       //if (ell == 6) Print(signal_[k], "Signal");
 #     ifdef APS_OUTPUT_TEST
-      //if (grid_->Rank() == 0) {
-        SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
-      //mpi::Barrier(grid_->Comm());
+      //if (is_root_) {
+        //SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
+      //Barrier();
 #     endif
 
       ++k;
@@ -151,7 +170,8 @@ void AngularPowerSpectrum::CalculateSignal() {
 
 
   }
-
+  sum_->Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );
+  //Print(*sum_, "Sum");
 }
 
 void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, 
@@ -169,7 +189,7 @@ void AngularPowerSpectrum::SaveDistributedMatrix(std::string name,
   std::ofstream outfile (test_directory_ + name, 
       std::ios::binary | std::ofstream::app );
   double number;
-  if (grid_->Rank() == 0){
+  if (is_root_){
     std::cout << "Writing test file " << name << " to: " << test_directory_ << name << std::endl;
   }
   for (int i = 0; i < num_rows; ++i){
