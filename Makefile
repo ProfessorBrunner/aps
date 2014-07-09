@@ -35,10 +35,10 @@ test_distributed: distributed_memory/aps_test $(FITS) $(DAT)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS) $(DAT)
 	./test/compare_test_directories.py data/standard data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 
-distributed_memory/aps_test:
+distributed_memory/aps_test: .FORCE
 	$(MAKE) -C ./distributed_memory aps_test
 
-shared_memory/KL_spectrum_output_test:
+shared_memory/KL_spectrum_output_test: .FORCE
 	$(MAKE) -C ./shared_memory KL_spectrum_output_test
 
 %.fits: data test/generate_inputs.py
