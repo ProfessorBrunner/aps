@@ -31,6 +31,9 @@ all: aps
 aps:  $(SOURCES) $(LIBS)
 	$(CXX) $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
 
+aps_test: $(SOURCES) $(LIBS)
+    $(CXX) -DAPS_OUTPUT_TEST $(CFLAGS) ${ELEM_COMPILE_FLAGS} $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) ${ELEM_LINK_FLAGS} $(LDLIBS) ${ELEM_LIBS}
+
 #Haven't needed to use this
 initialize: .FORCE
 	$(MKLROOT)/bin/mklvars.sh intel64

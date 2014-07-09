@@ -24,10 +24,19 @@ distributed_memory: .FORCE
 TEST_NSIDE=8
 FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
 DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
+NUM_PROC=4
 
-test: shared_memory/KL_spectrum_output_test  $(FITS) $(DAT)
+test_shared: shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
 	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
 	./test/compare_test_directories.py data/standard data/test_shared_CL_$(TEST_NSIDE)_lcdm
+
+test_distributed: distributed_memory/aps_test $(FITS) $(DAT)
+	rm -rf data/test_distributed_CL_$(TEST_NSIDE)_lcdm
+	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS) $(DAT)
+	./test/compare_test_directories.py data/standard data/test_distributed_CL_$(TEST_NSIDE)_lcdm
+
+distributed_memory/aps_test:
+	$(MAKE) -C ./distributed_memory aps_test
 
 shared_memory/KL_spectrum_output_test:
 	$(MAKE) -C ./shared_memory KL_spectrum_output_test
@@ -37,7 +46,7 @@ shared_memory/KL_spectrum_output_test:
 
 %.bands: data test/generate_inputs.py
 	@:
-	
+
 data: .FORCE
 	./test/generate_inputs.py -c ./test/catalog.dat ./data $(TEST_NSIDE)
 

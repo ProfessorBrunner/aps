@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Data output directory: " << output_directory << std::endl;
 #   ifdef APS_OUTPUT_TEST
     std::cout << "Test data output directory: " << test_directory << std::endl;
-    mkdir(test_directory, 0766);
+    mkdir(test_directory.c_str(), 0766);
 #   endif
   }
 

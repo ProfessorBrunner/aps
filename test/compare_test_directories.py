@@ -38,7 +38,15 @@ def compare_files(expected_file, observed_file):
         return None
 
     error = abs(expected-observed)
+
     relative_error = abs(error/expected)
+
+    # print "error>.1"
+    # error3d = np.reshape(error, (768, 768, 7), order='F')
+    # idx = np.where(error3d>.05)
+    # # row, col, bands = idx
+    # for i, j, band in zip(*idx):
+    #     print "i: {} j: {} band: {}".format(i,j,band)
 
     result = []
 
@@ -72,7 +80,8 @@ def compare_directories(expected_path, observed_path):
                     join(observed_path, f))
             print ""
             #print divider
-            print tabulate(result, headers=[f]+TABLE_HEADERS, tablefmt="orgtbl")
+            if result:
+                print tabulate(result, headers=[f]+TABLE_HEADERS, tablefmt="orgtbl")
             observed_files.remove(f)
         else:
             missing_files.append(f)
@@ -97,6 +106,8 @@ def main():
     parser.add_argument("standard_dir", help="directory of accepted output.")
     parser.add_argument("testable_dir", help="directory of output to test.")
     args = parser.parse_args()
+    print ""
+    print ""
     compare_directories(args.standard_dir, args.testable_dir)
 
 

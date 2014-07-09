@@ -106,7 +106,7 @@ void AngularPowerSpectrum::CalculateSignal() {
   //Begin Legendre Calculation
   int k = 0;
   local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
-  for (int ell = 1; ell < c_end_[bands_-1]; ++ell) {
+  for (int ell = 1; ell <= c_end_[bands_-1]; ++ell) {
     double coefficient = ((double) 2 * ell + 1)/((double) 2 * ell * (ell + 1));
     //Base case: ell = 1
     if (ell == 1){
@@ -127,24 +127,25 @@ void AngularPowerSpectrum::CalculateSignal() {
 
     if (ell < c_start_[k]) continue;
     //Set local_signal to current
+    VectorTimesScalar(current, coefficient);
     VectorPlusEqualsVector(local_signal, current);
 
 
-
-    
-    if (ell>=c_end_[k]){
+    if (ell == c_end_[k]){
+      if (grid_->Rank() == 0) {
+        std::cout << "Attaching band " << k << " modes: " << c_start_[k] <<
+            " to " << c_end_[k] << std::endl;
+      }
       signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), 
           local_height_ );
-
+      //if (ell == 6) Print(signal_[k], "Signal");
 #     ifdef APS_OUTPUT_TEST
-
       //if (grid_->Rank() == 0) {
         SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
-      //}
       //mpi::Barrier(grid_->Comm());
 #     endif
 
-      ell = c_start_[++k];
+      ++k;
       local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
     }
 
@@ -165,16 +166,15 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
     DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
-  std::ofstream outfile (test_directory_ + name, std::ios::binary);
+  std::ofstream outfile (test_directory_ + name, 
+      std::ios::binary | std::ofstream::app );
   double number;
-  if (grid_->Rank() == 0) 
-  std::cout << "Writing test file " << name << " to: " <<
-      test_directory_ << name << std::endl;
+  if (grid_->Rank() == 0){
+    std::cout << "Writing test file " << name << " to: " << test_directory_ << name << std::endl;
+  }
   for (int i = 0; i < num_rows; ++i){
     for (int j = 0; j < num_cols; ++j){
-      //std::cout << "preget from: " << matrix->Owner(i,j) << std::endl;
       number = matrix->Get(i,j);
-      //std::cout << "postget" <<std::endl;
       outfile.write(reinterpret_cast<char *>(&number), sizeof(number));
     }
   }
