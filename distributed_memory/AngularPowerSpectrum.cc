@@ -78,6 +78,7 @@ void AngularPowerSpectrum::run() {
   Barrier();
   double elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
+  //Print(signal_[2], "Signal_0");
 }
 
 /**
@@ -85,10 +86,10 @@ void AngularPowerSpectrum::run() {
  */
 void AngularPowerSpectrum::CalculateCovariance() {}
 
-/**
- * Calculate Signal Matrix from cosine matrix and Legendre polynomials
- */
+
 void AngularPowerSpectrum::CalculateSignal() {
+  // TODO(Alex): This code doesn't take advantage of symmetry. It could
+  // also calculate each band in i-j blocks to take better advantage of memory
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   sum_ = new DistMatrix<double>(*grid_);
   //Build Cosine Matrix
@@ -154,14 +155,12 @@ void AngularPowerSpectrum::CalculateSignal() {
           local_height_ );
 
 
+
       VectorTimesScalar(local_signal, c_[k]);
       VectorPlusEqualsVector(local_sum, local_signal);
 
-      //if (ell == 6) Print(signal_[k], "Signal");
 #     ifdef APS_OUTPUT_TEST
-      //if (is_root_) {
-        //SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
-      //Barrier();
+        SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
 #     endif
 
       ++k;
@@ -172,6 +171,7 @@ void AngularPowerSpectrum::CalculateSignal() {
   }
   sum_->Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );
   //Print(*sum_, "Sum");
+  
 }
 
 void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, 
@@ -200,10 +200,10 @@ void AngularPowerSpectrum::SaveDistributedMatrix(std::string name,
   }
 }
 
-/**
- * Karhunen-Loeve Compression
- */
-void AngularPowerSpectrum::KLCompression() {}
+
+void AngularPowerSpectrum::KLCompression() {
+
+}
 
 /**
  * Estimates the APS given Signal & Covariance Matrices
