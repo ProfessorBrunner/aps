@@ -91,7 +91,7 @@ void AngularPowerSpectrum::CalculateSignal() {
   // TODO(Alex): This code doesn't take advantage of symmetry. It could
   // also calculate each band in i-j blocks to take better advantage of memory
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
-  sum_ = new DistMatrix<double>(*grid_);
+  sum_ = DistMatrix<double>(*grid_);
   //Build Cosine Matrix
   std::vector<double> cos_values(local_height_ * local_width_, 0.0f);
   for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
@@ -112,22 +112,19 @@ void AngularPowerSpectrum::CalculateSignal() {
   //Initialize vectors for Legendre Calculation & DistMatrix operations
   std::vector<double> previous_previous(local_height_ * local_width_, 1.0f);
   std::vector<double> previous = cos_values;
-  std::vector<double> current;
-  std::vector<double> local_sum;
-  std::vector<double> local_signal;
-
+  std::vector<double> current; 
+  local_signal = std::vector<std::vector<double>>(bands_, std::vector<double> (local_height_ * local_width_, 0.0f));
+  local_sum = std::vector<double>(local_height_ * local_width_, 0.0f);
 
   //Begin Legendre Calculation
   int k = 0;
-  local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
-  local_sum = std::vector<double>(local_height_ * local_width_, 0.0f);
   for (int ell = 1; ell <= c_end_[bands_-1]; ++ell) {
     double coefficient = ((double) 2 * ell + 1)/((double) 2 * ell * (ell + 1));
     //Base case: ell = 1
     if (ell == 1){
       current = cos_values;
       VectorTimesScalar(current, coefficient);
-      if (ell >= c_start_[k]) VectorPlusEqualsVector(local_signal, current);
+      if (ell >= c_start_[k]) VectorPlusEqualsVector(local_signal[k], current);
       continue;
     }
     //current = current * cos_values * previous + (previous_previous * (1-ell/ell))
@@ -143,7 +140,7 @@ void AngularPowerSpectrum::CalculateSignal() {
     if (ell < c_start_[k]) continue;
     //Set local_signal to current
     VectorTimesScalar(current, coefficient);
-    VectorPlusEqualsVector(local_signal, current);
+    VectorPlusEqualsVector(local_signal[k], current);
 
 
     if (ell == c_end_[k]){
@@ -151,25 +148,25 @@ void AngularPowerSpectrum::CalculateSignal() {
         std::cout << "Attaching band " << k << " modes: " << c_start_[k] <<
             " to " << c_end_[k] << std::endl;
       }
-      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), 
+      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal[k].data(), 
           local_height_ );
 
 
 
-      VectorTimesScalar(local_signal, c_[k]);
-      VectorPlusEqualsVector(local_sum, local_signal);
+      VectorTimesScalar(local_signal[k], c_[k]);
+      VectorPlusEqualsVector(local_sum, local_signal[k]);
 
 #     ifdef APS_OUTPUT_TEST
         SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
 #     endif
 
       ++k;
-      local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
+      local_signal[k] = std::vector<double>(local_height_ * local_width_, 0.0f);
     }
 
 
   }
-  sum_->Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );
+  sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );
   //Print(*sum_, "Sum");
   
 }

@@ -65,7 +65,7 @@ class AngularPowerSpectrum {
   ///
   std::vector<DistMatrix<double>> signal_;
   ///
-  DistMatrix<double> *sum_;
+  DistMatrix<double> sum_;
   ///
   Grid *grid_;
   /// Grid 
@@ -80,6 +80,10 @@ class AngularPowerSpectrum {
   Int local_height_;
   ///  
   Int local_width_;
+  ///
+  std::vector<std::vector<double>> local_signal;
+  ///
+  std::vector<double> local_sum;
 
   ///
   std::string output_directory_;
