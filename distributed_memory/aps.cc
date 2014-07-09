@@ -27,7 +27,9 @@
 //#define APS_DEBUG
 
 #include <stdlib.h>
-
+#ifdef APS_OUTPUT_TEST
+#include <sys/stat.h>
+#endif
 #include <iostream>
 
 #include "elemental-lite.hpp"
@@ -36,14 +38,6 @@
 #include "BandPower.h"
 #include "AngularPowerSpectrum.h"
 
- /*may not need this?
-#include ELEM_DIAGONALSCALE_INC
-#include ELEM_FROBENIUSNORM_INC
-#include ELEM_INFINITYNORM_INC
-#include ELEM_MAXNORM_INC
-#include ELEM_ONENORM_INC
-#include ELEM_SVD_INC
-#include ELEM_UNIFORM_INC*/
 using namespace elem;
 
 int main(int argc, char *argv[]) {
@@ -85,7 +79,8 @@ int main(int argc, char *argv[]) {
     
     char_position = test_name.find_last_of('.');
     test_name = test_name.substr(0, char_position);
-    test_directory = output_directory + "/" + std::string("test_distributed_") + test_name;
+    test_directory = output_directory + "/" + std::string("test_distributed_") +
+        test_name + "/";
 
     output_directory = output_directory + "/output";
 
@@ -93,6 +88,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Data output directory: " << output_directory << std::endl;
 #   ifdef APS_OUTPUT_TEST
     std::cout << "Test data output directory: " << test_directory << std::endl;
+    mkdir(test_directory, 0766);
 #   endif
   }
 

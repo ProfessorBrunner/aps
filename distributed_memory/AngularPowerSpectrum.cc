@@ -150,12 +150,18 @@ void AngularPowerSpectrum::CalculateSignal() {
 
     
     if (ell>=c_end_[k]){
-      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), local_height_ );
-      Print(signal_[k], "Signal");
-      return;
+      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal.data(), 
+          local_height_ );
+
+#     ifdef APS_OUTPUT_TEST
+
+      //if (grid_->Rank() == 0) {
+        SaveDistributedMatrix("signal", &signal_[k], bins_, bins_);
+      //}
+      //mpi::Barrier(grid_->Comm());
+#     endif
 
       ell = c_start_[++k];
-
       local_signal = std::vector<double>(local_height_ * local_width_, 0.0f);
     }
 
@@ -164,7 +170,8 @@ void AngularPowerSpectrum::CalculateSignal() {
 
 }
 
-void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, int height) {
+void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, 
+    int height) {
   for (int i = 0; i < height; ++i){
     for (int j = 0; j < length; ++j){
       std::cout << " " << v[i + j*height];
@@ -173,12 +180,18 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, int 
   }
 }
 
-void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
+void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
+    DistMatrix<double> *matrix, Int num_rows, Int num_cols) {
   std::ofstream outfile (test_directory_ + name, std::ios::binary);
   double number;
+  if (grid_->Rank() == 0) 
+  std::cout << "Writing test file " << name << " to: " <<
+      test_directory_ << name << std::endl;
   for (int i = 0; i < num_rows; ++i){
     for (int j = 0; j < num_cols; ++j){
+      //std::cout << "preget from: " << matrix->Owner(i,j) << std::endl;
       number = matrix->Get(i,j);
+      //std::cout << "postget" <<std::endl;
       outfile.write(reinterpret_cast<char *>(&number), sizeof(number));
     }
   }
