@@ -32,6 +32,7 @@
 #endif
 
 #include <vector>
+#include <stdlib.h>
 
 #include "elemental-lite.hpp"
 
@@ -78,6 +79,11 @@ class AngularPowerSpectrum {
   ///  
   Int local_width_;
 
+  ///
+  std::string output_directory_;
+  ///
+  std::string test_directory_;
+
   ///  Conversion factor for degrees to radians
   static constexpr double kDegreeToRadian = M_PI/180.0;
 
@@ -105,6 +111,9 @@ class AngularPowerSpectrum {
   void ExpectedCovariance();
   void CalculateFisher();
   void RecalculateC_L();
+  void SaveRawArray();
+  void PrintRawArray(std::vector<double> v, int length, int height);
+  void SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix, Int num_rows, Int num_cols);
 
   inline void VectorPlusEqualsVector(std::vector<double> &a, std::vector<double> &b) {
     std::transform(a.begin(), a.end(), b.begin(), a.begin(), std::plus<double>());
@@ -118,6 +127,8 @@ class AngularPowerSpectrum {
     std::transform(v.begin(), v.end(), v.begin(), 
         std::bind1st(std::multiplies<double>(), a));
   }
+
+
 };
 
 #endif

@@ -55,24 +55,45 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-
-  int rank = mpi::WorldRank();
   int bands, bins;
   double total_galaxies, omega;
+  std::string output_directory, test_name, test_directory;
 
   OverdensityMap *mp;
   BandPower *bp;
 
-  if (mpi::WorldRank() == 0) {
+  //set algorithmic blocksize (default 128): SetBlocksize( int blocksize );
+  Grid grid( mpi::COMM_WORLD );
+
+  if (grid.Rank() == 0) {
     mp = new OverdensityMap();
     bp = new BandPower();
     mp->LoadFromFile(argv[1]);
     bp->LoadFromFile(argv[2]);
-    
+
     bands = bp->bands_;
     bins = mp->bins_;
     total_galaxies = mp->total_galaxies_;
     omega = mp->omega_;
+
+    //Determine output file directories
+    output_directory =std::string(argv[2]);
+    int char_position = output_directory.find_last_of('/');
+    test_name = output_directory.substr(char_position+1);
+
+    output_directory = output_directory.substr(0, char_position);
+    
+    char_position = test_name.find_last_of('.');
+    test_name = test_name.substr(0, char_position);
+    test_directory = output_directory + "/" + std::string("test_distributed_") + test_name;
+
+    output_directory = output_directory + "/output";
+
+
+    std::cout << "Data output directory: " << output_directory << std::endl;
+#   ifdef APS_OUTPUT_TEST
+    std::cout << "Test data output directory: " << test_directory << std::endl;
+#   endif
   }
 
   //Distribute scalars to all the children
@@ -81,18 +102,17 @@ int main(int argc, char *argv[]) {
   mpi::Broadcast(&total_galaxies, 1, 0, mpi::COMM_WORLD);
   mpi::Broadcast(&omega, 1, 0, mpi::COMM_WORLD);
 
-
-  //set algorithmic blocksize (default 128): SetBlocksize( int blocksize );
-  Grid grid( mpi::COMM_WORLD );
-
   AngularPowerSpectrum aps(bins, bands, total_galaxies, omega, grid);
 
-  if (mpi::WorldRank() == 0) {
+  if (grid.Rank() == 0) {
     memcpy(aps.c_, bp->c_, bands * sizeof *bp->c_);
     memcpy(aps.c_start_, bp->c_start_, bands * sizeof *bp->c_start_);
     memcpy(aps.c_end_, bp->c_end_, bands * sizeof *bp->c_end_);
     memcpy(aps.ra_, mp->ra_, bins * sizeof *mp->ra_);
     memcpy(aps.dec_, mp->dec_, bins * sizeof *mp->dec_);
+
+    aps.output_directory_ = output_directory;
+    aps.test_directory_ = test_directory;
   }
 
   //Distribute arrays to all the children
@@ -102,10 +122,14 @@ int main(int argc, char *argv[]) {
   mpi::Broadcast(aps.ra_, bins, 0, mpi::COMM_WORLD);
   mpi::Broadcast(aps.dec_, bins, 0, mpi::COMM_WORLD);
 
-  delete mp;
-  delete bp;
+  if (grid.Rank() == 0) {
+    delete mp;
+    delete bp;
+  }
 
   aps.run();
 
+  //mpi::Barrier(mpi::COMM_WORLD);
+  Finalize();
   return EXIT_SUCCESS;
 }
