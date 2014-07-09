@@ -34,7 +34,7 @@ void toc_print(Timer *timer) {
 void save_raw_double_array(char *root, char *name, double *data, int len) {
   char filename[kMaxChars];
   int count;
-  sprintf(filename, "%s/%s", root, name);
+  sprintf(filename, "%s/%s.dat", root, name);
   printf("#Writing test data %s to %s\n", name, filename);
 
   FILE *fp = fopen(filename, "wb");
