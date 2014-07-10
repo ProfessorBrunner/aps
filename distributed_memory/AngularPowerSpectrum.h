@@ -48,6 +48,8 @@ class AngularPowerSpectrum {
   double total_galaxies_;
   ///Total Area. Total area of usable pixels.
   double omega_;
+  ///omega_/total_galaxies_
+  double inverse_density_;
   /// c_[i] combined coefficient for the band from c_start_[i] to c_end_[i]
   double *c_;
   /// c_start_[i] is the begining of i-th band
@@ -55,7 +57,9 @@ class AngularPowerSpectrum {
   /// c_start_[i] is the end of i-th band
   int *c_end_;
   ///Overdensity vector. Overdensity of pixels at ra_, dec_ 
-  double *overdensity_;
+  DistMatrix<double, STAR, STAR> overdensity_;
+  ///The local copy of Overdensity
+  double *local_overdensity_;
   ///Right Ascension. Pixel position in astronomical coordinates.
   double *ra_;
   ///Declination. Pixel position in astronomical coordinates.
@@ -91,6 +95,8 @@ class AngularPowerSpectrum {
 
   ///  Conversion factor for degrees to radians
   static constexpr double kDegreeToRadian = M_PI/180.0;
+  ///  Large number to eliminate mean mode in KL compression
+  static constexpr double kLargeNumber = 1000000; 
 
 
   ///default constructor
@@ -109,6 +115,10 @@ class AngularPowerSpectrum {
   
  private:
 
+  void MatrixInfo(DistMatrix<double> &m);
+  void MatrixInfo(DistMatrix<double,VR,STAR> &m);
+
+  void CreateOverdensity();
   /**
    * Build Covariance Matrix
    */
@@ -174,6 +184,10 @@ class AngularPowerSpectrum {
   inline void VectorTimesScalar(std::vector<double> &v, double a) {
     std::transform(v.begin(), v.end(), v.begin(), 
         std::bind1st(std::multiplies<double>(), a));
+  }
+
+  inline double NoiseSqrtAt(int i, int j) {
+    return ((double) i == j) * inverse_density_ + kLargeNumber; 
   }
 };
 #endif

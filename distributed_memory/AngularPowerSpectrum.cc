@@ -36,6 +36,12 @@
 #include <functional>
 
 #include "elemental-lite.hpp"
+#include ELEM_HEMM_INC
+#include ELEM_ONES_INC
+#include ELEM_SYMM_INC
+#include ELEM_COPY_INC
+//#include ELEM_FUNCS_INC
+
 #include "chealpix.h"
 #include "fitsio.h"
 
@@ -50,12 +56,14 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        bands_(bands),
        total_galaxies_(total_galaxies),
        omega_(omega),
+       inverse_density_(omega_/total_galaxies_),
        grid_(&grid),
        c_(new double[bands]),
        c_start_(new int[bands]),
        c_end_(new int[bands]),
        ra_(new double[bins]),
        dec_(new double[bins]),
+       local_overdensity_(new double[bins]),
        grid_height_(grid.Height()),
        grid_width_(grid.Width()),
        grid_row_(grid.Row()),
@@ -70,12 +78,27 @@ AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
 void AngularPowerSpectrum::run() {
   Timer timer;
+  double elapsed;
+
+  CreateOverdensity();
+
   Barrier();
   timer.Start();
   CalculateSignal();
   Barrier();
-  double elapsed = timer.Stop();
+  elapsed = timer.Stop();
   if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
+# ifdef APS_OUTPUT_TEST
+  for (int k = 0; k < bands_; ++k){
+    //Save matrix to file
+    SaveDistributedMatrix("signal" + std::to_string(k), &signal_[k]);
+  }
+# endif
+
+  timer.Start();
+  KLCompression();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
 }
 
 void AngularPowerSpectrum::CalculateSignal() {
@@ -148,11 +171,6 @@ void AngularPowerSpectrum::CalculateSignal() {
       VectorTimesScalar(current, c_[k]);
       VectorPlusEqualsVector(local_sum, current);
 
-      //Save matrix to file
-#     ifdef APS_OUTPUT_TEST
-        SaveDistributedMatrix("signal" + std::to_string(k), &signal_[k], bins_, bins_);
-#     endif
-
       ++k;
     }
   }
@@ -175,13 +193,64 @@ void AngularPowerSpectrum::SaveDistributedMatrix(std::string name,
   Write(*matrix, test_directory_ + name, BINARY_FLAT);
 }
 
+void AngularPowerSpectrum::KLCompression() {
+  DistMatrix<double> temp, B;
+  DistMatrix<double> P(*grid_);
+  DistMatrix<double,VR,STAR> w(*grid_);
+  double p, q;
+  int cutoff;
+  double *buffer;
+  Copy(sum_, temp);
+  Ones( P, bins_, bins_);
+  //Symm(RIGHT)    C:= a B A    + b C
+  //Symm(RIGHT) temp:= p P sum_ + q temp
+  p = - kLargeNumber / ( inverse_density_ * (bins_ + inverse_density_) );
+  q = 1 / inverse_density_;
+  Symm(RIGHT, UPPER, p, sum_, P, q, temp);
+
+  HermitianEig(UPPER, temp, w, B, DESCENDING);
+  buffer = B.Buffer();
+  for( Int jLoc=0; jLoc<local_width_; ++jLoc ) {
+    // Form global column index from local column index
+    const Int j = grid_col_ + jLoc*grid_width_;
+    for( Int iLoc=0; iLoc<local_height_; ++iLoc ) {
+        // Form global row index from local row index
+        const Int i = grid_row_ + iLoc*grid_height_;     
+        buffer[iLoc+jLoc*local_height_] /= NoiseSqrtAt(i, j);
+
+    }
+  }
+  MatrixInfo(B);
+  for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
+  
+  View(temp, B, 0, 0, B.Height(), cutoff);
+
+}
+
+void AngularPowerSpectrum::MatrixInfo(DistMatrix<double> &m){
+  std::cout << "Width: " << m.Width() << " Height: " << m.Height() << std::endl;
+  std::cout << "Total Elements: " << m.Height() * m.Width() << std::endl;
+  std::cout << "Memory Elements: " << m.AllocatedMemory() << std::endl;
+  std::cout << "Is a view? " << m.Viewing() << std::endl;
+}
+
+void AngularPowerSpectrum::MatrixInfo(DistMatrix<double,VR,STAR> &m){
+  std::cout << "Width: " << m.Width() << " Height: " << m.Height() << std::endl;
+  std::cout << "Total Elements: " << m.Height() * m.Width() << std::endl;
+  std::cout << "Memory Elements: " << m.AllocatedMemory() << std::endl;
+  std::cout << "Is a view? " << m.Viewing() << std::endl;
+}
+
+void AngularPowerSpectrum::CreateOverdensity() {
+  overdensity_ = DistMatrix<double, STAR, STAR>(*grid_);
+  overdensity_.Attach(bins_, bins_, *grid_, 0, 0, local_overdensity_, bins_);
+}
 
 /*********************
  * To Do:
  ********************/
 void AngularPowerSpectrum::CalculateCovariance() {}
 
-void AngularPowerSpectrum::KLCompression() {}
 
 void AngularPowerSpectrum::EstimateC() {}
 
