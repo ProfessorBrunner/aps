@@ -57,7 +57,7 @@ class AngularPowerSpectrum {
   /// c_start_[i] is the end of i-th band
   int *c_end_;
   ///Overdensity vector. Overdensity of pixels at ra_, dec_ 
-  DistMatrix<double, STAR, STAR> overdensity_;
+  DistMatrix<double, VC, STAR> overdensity_;
   ///The local copy of Overdensity
   double *local_overdensity_;
   ///Right Ascension. Pixel position in astronomical coordinates.
@@ -187,7 +187,7 @@ class AngularPowerSpectrum {
   }
 
   inline double NoiseSqrtAt(int i, int j) {
-    return ((double) i == j) * inverse_density_ + kLargeNumber; 
+    return sqrt(((double) i == j) * inverse_density_ + kLargeNumber); 
   }
 };
 #endif

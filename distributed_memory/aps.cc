@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
     memcpy(aps.c_end_, bp->c_end_, bands * sizeof *bp->c_end_);
     memcpy(aps.ra_, mp->ra_, bins * sizeof *mp->ra_);
     memcpy(aps.dec_, mp->dec_, bins * sizeof *mp->dec_);
+    //Only the root has a copy of overdensity until run copies it to everyone
     memcpy(aps.local_overdensity_, mp->overdensity_, bins * sizeof *mp->overdensity_);
 
     aps.output_directory_ = output_directory;
@@ -118,7 +119,6 @@ int main(int argc, char *argv[]) {
   mpi::Broadcast(aps.c_end_, bands, 0, mpi::COMM_WORLD);
   mpi::Broadcast(aps.ra_, bins, 0, mpi::COMM_WORLD);
   mpi::Broadcast(aps.dec_, bins, 0, mpi::COMM_WORLD);
-  mpi::Broadcast(aps.local_overdensity_, bins, 0, mpi::COMM_WORLD);
 
   if (grid.Rank() == 0) {
     delete mp;

@@ -40,7 +40,7 @@
 #include ELEM_ONES_INC
 #include ELEM_SYMM_INC
 #include ELEM_COPY_INC
-//#include ELEM_FUNCS_INC
+#include ELEM_GEMV_INC
 
 #include "chealpix.h"
 #include "fitsio.h"
@@ -222,8 +222,14 @@ void AngularPowerSpectrum::KLCompression() {
   }
   MatrixInfo(B);
   for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
-  
+
   View(temp, B, 0, 0, B.Height(), cutoff);
+
+  auto temp_overdensity_(overdensity_);
+  Gemv(TRANSPOSE, 1.0, temp, overdensity_, 0.0, temp_overdensity_);
+  overdensity_ = temp_overdensity_;
+  //Print(overdensity_, "overdensity");
+  Print(w, "eigenvalues");
 
 }
 
@@ -242,8 +248,9 @@ void AngularPowerSpectrum::MatrixInfo(DistMatrix<double,VR,STAR> &m){
 }
 
 void AngularPowerSpectrum::CreateOverdensity() {
-  overdensity_ = DistMatrix<double, STAR, STAR>(*grid_);
-  overdensity_.Attach(bins_, bins_, *grid_, 0, 0, local_overdensity_, bins_);
+  DistMatrix<double, CIRC, CIRC> temp(*grid_);
+  temp.Attach(bins_, 1, *grid_, 0, 0, local_overdensity_, bins_);
+  overdensity_ = temp;
 }
 
 /*********************
