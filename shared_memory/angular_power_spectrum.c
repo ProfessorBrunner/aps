@@ -109,7 +109,15 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   }
 
   // A = inverse noise matrix times the signal matrix.  N^-1*S 
-  invert_matrix(noise, g_bins); 
+  // printf("noise: %g %g\n", noise[0]-KLargeNumber, noise[1]-KLargeNumber);
+  // for (i = 0; i < g_bins; ++i){
+  //   for (j = 0; j < g_bins; ++j){
+  //     printf("%g ", noise[j+i*g_bins]);
+  //   }
+  //   printf("\n");
+  // }
+  invert_matrix(noise, g_bins);
+  printf("inverse noise: %f %f\n", noise[0], noise[1]);
   multiply_matrices(noise, sum, B, g_bins, g_bins, g_bins);
   invert_matrix(noise, g_bins);
 
@@ -134,6 +142,8 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   // printf("#-# %d out of %.0f don't match\n", count, 0.5*(g_bins*g_bins-g_bins));
   // printf("#-# %.2f percent\n", 100.0*count/(0.5*(g_bins*g_bins-g_bins)));
   // printf("#-#########\n#-#Finished Testing\n#-#########\n");
+
+
 
   // Calculate eigenvalues and eigenvectors.
   printf("#Calculating  eigenvalues and eigenvectors.\n");

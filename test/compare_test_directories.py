@@ -58,6 +58,16 @@ def compare_files(expected_file, observed_file):
 
     return result
 
+def compare_files_table(expected_path, observed_path, files):
+    """
+    Compare two files and make a table summerizing thier differences
+    """
+    for f in files:
+        expected = load_binary_file(join(expected_path, f))[0:50]
+        observed = load_binary_file(join(observed_path, f))[0:50]
+        print tabulate(zip(expected, observed), 
+            headers = ["Expected", "Observed"])
+
 
 def compare_directories(expected_path, observed_path):
     """
@@ -105,10 +115,16 @@ def main():
         description='Compare binary files in two directories.')
     parser.add_argument("standard_dir", help="directory of accepted output.")
     parser.add_argument("testable_dir", help="directory of output to test.")
+    parser.add_argument("-f", "--file", nargs='+', dest="specific_file",
+        help="compare a specific file")
     args = parser.parse_args()
     print ""
     print ""
-    compare_directories(args.standard_dir, args.testable_dir)
+    if args.specific_file:
+        compare_files_table(args.standard_dir, args.testable_dir, 
+            args.specific_file)
+    else:
+        compare_directories(args.standard_dir, args.testable_dir)
 
 
 if __name__ == "__main__":

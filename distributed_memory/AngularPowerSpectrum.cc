@@ -56,7 +56,7 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        bands_(bands),
        total_galaxies_(total_galaxies),
        omega_(omega),
-       inverse_density_(omega_/total_galaxies_),
+       inverse_density_(omega/total_galaxies),
        grid_(&grid),
        c_(new double[bands]),
        c_start_(new int[bands]),
@@ -204,9 +204,20 @@ void AngularPowerSpectrum::KLCompression() {
   Ones( P, bins_, bins_);
   //Symm(RIGHT)    C:= a B A    + b C
   //Symm(RIGHT) temp:= p P sum_ + q temp
-  p = - kLargeNumber / ( inverse_density_ * (bins_ + inverse_density_) );
-  q = 1 / inverse_density_;
+  p = - kLargeNumber / ( inverse_density_ * (bins_ * kLargeNumber + inverse_density_) );
+  q = 1.0 / inverse_density_;
+  //shared
+  //noise: 1000000.765106 1000000
+  //inverse noise: 1.30531 -0.00170183
+
+  //distributed
+  //p -1700.14 q 1.30701 inverse density 0.765106
+  //inverse noise -1698.83 -1700.14
+  //std::cout << "p " << p << " q " << q << " inverse density " << inverse_density_<<std::endl;
+  //std::cout << "inverse noise "<< p + q << " " << p << std::endl;
   Symm(RIGHT, UPPER, p, sum_, P, q, temp);
+
+  //Print(temp, "Vector to be eigenvalued");
 
   HermitianEig(UPPER, temp, w, B, DESCENDING);
   buffer = B.Buffer();
@@ -228,7 +239,7 @@ void AngularPowerSpectrum::KLCompression() {
   auto temp_overdensity_(overdensity_);
   Gemv(TRANSPOSE, 1.0, temp, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
-  //Print(overdensity_, "overdensity");
+  Print(overdensity_, "overdensity");
   Print(w, "eigenvalues");
 
 }
