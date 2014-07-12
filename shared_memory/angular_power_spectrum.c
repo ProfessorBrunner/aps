@@ -72,7 +72,7 @@ int read_Healpix_file(double *overdensity, float *healpix, double *ra, double *d
 
 
 /// A function to do KL compression on input data vectors and matrices.
-int KL_compression(double *overdensity, double *signal, double *noise, double *data_covariance, double *C, FILE *output_KL)
+int KL_compression(double *overdensity, double *signal, double *noise, double *data_covariance, double *C, FILE *output_KL, char* test_root)
 {
   int i, j, l, INFO, LDA, LWORK, N;
   long k=0;
@@ -171,6 +171,10 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
       B[i+j*g_bins] = B[i+j*g_bins]/sqrt(noise[j+j*g_bins]);
     }
   }
+
+# ifdef APS_OUTPUT_TEST
+  save_raw_double_array(test_root, "eigenvectors", B, g_bins * g_bins);
+# endif
 
   matrix_transpose(B, Bt, g_bins, g_bins);
 

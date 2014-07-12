@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 
   // KL-Compress
   tic(&time_function);
-  KL_compression(overdensity, signal, noise, data_covariance, C, output_KL); 
+  KL_compression(overdensity, signal, noise, data_covariance, C, output_KL, test_root); 
   toc(&time_function);
   printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
 # ifdef APS_OUTPUT_TEST

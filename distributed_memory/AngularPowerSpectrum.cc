@@ -38,6 +38,7 @@
 #include "elemental-lite.hpp"
 #include ELEM_HEMM_INC
 #include ELEM_ONES_INC
+#include ELEM_DIAGONAL_INC
 #include ELEM_SYMM_INC
 #include ELEM_COPY_INC
 #include ELEM_GEMV_INC
@@ -99,6 +100,7 @@ void AngularPowerSpectrum::run() {
   KLCompression();
   elapsed = timer.Stop();
   if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+
 }
 
 void AngularPowerSpectrum::CalculateSignal() {
@@ -194,13 +196,13 @@ void AngularPowerSpectrum::SaveDistributedMatrix(std::string name,
 }
 
 void AngularPowerSpectrum::KLCompression() {
-  DistMatrix<double> temp, B;
+  DistMatrix<double> temp(*grid_), B(*grid_);
   DistMatrix<double> P(*grid_);
   DistMatrix<double,VR,STAR> w(*grid_);
   double p, q;
   int cutoff;
   double *buffer;
-  Copy(sum_, temp);
+  Copy(sum_, temp); //Why is this?
   Ones( P, bins_, bins_);
   //Symm(RIGHT)    C:= a B A    + b C
   //Symm(RIGHT) temp:= p P sum_ + q temp
@@ -220,6 +222,22 @@ void AngularPowerSpectrum::KLCompression() {
   //Print(temp, "Vector to be eigenvalued");
 
   HermitianEig(UPPER, temp, w, B, DESCENDING);
+
+  DistMatrix<double> eigen_diagonal(*grid_);
+  DistMatrix<double> test7(*grid_), test8(*grid_);
+  std::vector<double> diagonal(w.Height());
+  for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
+  Diagonal(eigen_diagonal, diagonal);
+  Ones( test7, bins_, bins_);
+  Ones( test8, bins_, bins_);
+  Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
+  Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
+  Print(B, "Eigenvectors");
+  Print(eigen_diagonal, "Diagonal");
+  Print(temp, "Original Noise*Sum");
+  Print(test8, "Recreated");
+  
+
   buffer = B.Buffer();
   for( Int jLoc=0; jLoc<local_width_; ++jLoc ) {
     // Form global column index from local column index
@@ -231,16 +249,22 @@ void AngularPowerSpectrum::KLCompression() {
 
     }
   }
-  MatrixInfo(B);
-  for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
 
+  SaveDistributedMatrix("eigenvectors", &B);
+  //MatrixInfo(B);
+
+  for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
+  cutoff++; //view indexing  is not inclusive of cutoff
+  
+  //temp is a view of B
   View(temp, B, 0, 0, B.Height(), cutoff);
 
   auto temp_overdensity_(overdensity_);
   Gemv(TRANSPOSE, 1.0, temp, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
-  Print(overdensity_, "overdensity");
-  Print(w, "eigenvalues");
+  // Print(overdensity_, "overdensity");
+  // Print(w, "eigenvalues");
+
 
 }
 

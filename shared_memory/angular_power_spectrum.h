@@ -92,7 +92,7 @@ void matrix_square_root(double *, double *, long);
 long count_Healpix_pixels(char *, float *);
 int read_bandpower_file(FILE *, double *, int *, int *);
 int read_Healpix_file(double *, float *, double *, double *, long);
-int KL_compression(double *, double *, double *, double *, double *, FILE *);
+int KL_compression(double *, double *, double *, double *, double *, FILE *, char* test_root);
 double estimate_C(double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, int *, int *, double *, int, FILE *, FILE *, FILE *);
 int calculate_Healpix_covariance(double *, double *, double *, double *, double *, double *);
 double calculate_signal(double *, double *, int *, int *);
