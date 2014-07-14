@@ -64,21 +64,23 @@ def compare_files_table(expected_path, observed_path, files):
     """
     Compare two files and make a table summerizing thier differences
     """
+    n =0
+    idx = range(n*BINS,(n+1)*BINS)
     for f in files:
-        expected = load_binary_file(join(expected_path, f)) #[0:BINS]
-        observed = load_binary_file(join(observed_path, f)) #[0:BINS]
-        expected = (np.reshape(expected, (BINS, BINS), order='F'))
-        observed = (np.reshape(observed, (BINS, BINS), order='F'))
-        # idx_exp = np.argsort(expected[0])
-        # idx_obs = np.argsort(observed[0])
-        # expected = expected[:, idx_exp]
-        # observed = observed[:, idx_obs]
-        # print tabulate(zip(expected[0], observed[0]),
-        #     headers = ["Expected", "Observed"])
-        plt.pcolor(expected)
-        plt.show()
-        plt.pcolor(observed)
-        plt.show()
+        expected = load_binary_file(join(expected_path, f))[idx]
+        observed = load_binary_file(join(observed_path, f))[idx]
+        # expected = (np.reshape(expected, (BINS, BINS), order='F'))
+        # observed = (np.reshape(observed, (BINS, BINS), order='F'))
+        # # idx_exp = np.argsort(expected[0])
+        # # idx_obs = np.argsort(observed[0])
+        # # expected = expected[:, idx_exp]
+        # # observed = observed[:, idx_obs]
+        # # print tabulate(zip(expected[0], observed[0]),
+        # #     headers = ["Expected", "Observed"])
+        # plt.pcolor(expected)
+        # plt.show()
+        # plt.pcolor(observed)
+        # plt.show()
 
 
         # for num in range(len(observed)):
@@ -86,6 +88,8 @@ def compare_files_table(expected_path, observed_path, files):
         #     min_diff = min(abs(obs-exp), abs(obs+exp))
         #     if  min_diff > 1e-2:
         #         print "diff: {:8} exp: {:8} obs: {:8}".format(min_diff, expected[num], observed[num])
+        print tabulate(zip(expected, observed),
+            headers = ["Expected", "Observed"], floatfmt=".4f")
 
 
 def compare_directories(expected_path, observed_path):

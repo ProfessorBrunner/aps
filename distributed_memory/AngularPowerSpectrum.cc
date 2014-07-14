@@ -77,7 +77,11 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
 
+
+
+
 void AngularPowerSpectrum::run() {
+  if (is_root_) std::cout << "Running AngularPowerSpectrum" << std::endl;
   Timer timer;
   double elapsed;
 
@@ -92,16 +96,43 @@ void AngularPowerSpectrum::run() {
 # ifdef APS_OUTPUT_TEST
   for (int k = 0; k < bands_; ++k){
     //Save matrix to file
-    SaveDistributedMatrix("signal" + std::to_string(k), &signal_[k]);
+    SaveDistributedMatrix("signal" + std::to_string(k), signal_[k]);
   }
 # endif
 
-  timer.Start();
-  KLCompression();
-  elapsed = timer.Stop();
-  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  // Barrier();
+  // timer.Start();
+  // KLCompression();
+  // Barrier();
+  // elapsed = timer.Stop();
+  // if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  // # ifdef APS_OUTPUT_TEST
+  // for (int k = 0; k < bands_; ++k){
+  //   //Save matrix to file
+  //   SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
+  // }
+  //# endif
 
+  Barrier();
+  timer.Start();
+  Print(overdensity_, "overdensity_");
+  CalculateDifference();
+  //IterativeEstimation();
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "Total iteration time " << elapsed << std::endl;
+# ifdef APS_OUTPUT_TEST
+    SaveDistributedMatrix("difference" , difference_);
+# endif
 }
+
+
+
+
+
+
+
+
 
 void AngularPowerSpectrum::CalculateSignal() {
   //Initialize Signal and Sum matrices
@@ -180,6 +211,13 @@ void AngularPowerSpectrum::CalculateSignal() {
   sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );  
 }
 
+
+
+
+
+
+
+
 void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length, 
     int height) {
   for (int i = 0; i < height; ++i){
@@ -191,21 +229,20 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 }
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
-    DistMatrix<double> *matrix) {
-  Write(*matrix, test_directory_ + name, BINARY_FLAT);
+    DistMatrix<double> &matrix) {
+  Write(matrix, test_directory_ + name, BINARY_FLAT);
 }
 
 void AngularPowerSpectrum::KLCompression() {
-  DistMatrix<double> temp(*grid_), B(*grid_);
+  DistMatrix<double> temp(*grid_), B(*grid_), B_prime(*grid_);
   DistMatrix<double> P(*grid_);
+  DistMatrix<double> test7(*grid_);
   DistMatrix<double,VR,STAR> w(*grid_);
   double p, q;
   int cutoff;
   double *buffer;
   Copy(sum_, temp); //Why is this?
   Ones( P, bins_, bins_);
-  //Symm(RIGHT)    C:= a B A    + b C
-  //Symm(RIGHT) temp:= p P sum_ + q temp
   p = - kLargeNumber / ( inverse_density_ * (bins_ * kLargeNumber + inverse_density_) );
   q = 1.0 / inverse_density_;
   //shared
@@ -217,25 +254,27 @@ void AngularPowerSpectrum::KLCompression() {
   //inverse noise -1698.83 -1700.14
   //std::cout << "p " << p << " q " << q << " inverse density " << inverse_density_<<std::endl;
   //std::cout << "inverse noise "<< p + q << " " << p << std::endl;
+  //Symm(RIGHT)    C:= a B A    + b C
+  //Symm(RIGHT) temp:= p P sum_ + q temp
   Symm(RIGHT, UPPER, p, sum_, P, q, temp);
 
   //Print(temp, "Vector to be eigenvalued");
 
   HermitianEig(UPPER, temp, w, B, DESCENDING);
 
-  DistMatrix<double> eigen_diagonal(*grid_);
-  DistMatrix<double> test7(*grid_), test8(*grid_);
-  std::vector<double> diagonal(w.Height());
-  for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
-  Diagonal(eigen_diagonal, diagonal);
-  Ones( test7, bins_, bins_);
-  Ones( test8, bins_, bins_);
-  Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
-  Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
-  Print(B, "Eigenvectors");
-  Print(eigen_diagonal, "Diagonal");
-  Print(temp, "Original Noise*Sum");
-  Print(test8, "Recreated");
+  // DistMatrix<double> eigen_diagonal(*grid_);
+  // DistMatrix<double> test7(*grid_), test8(*grid_);
+  // std::vector<double> diagonal(w.Height());
+  // for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
+  // Diagonal(eigen_diagonal, diagonal);
+  // Ones( test7, bins_, bins_);
+  // Ones( test8, bins_, bins_);
+  // Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
+  // Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
+  // Print(B, "Eigenvectors");
+  // Print(eigen_diagonal, "Diagonal");
+  // Print(temp, "Original Noise*Sum");
+  // Print(test8, "Recreated");
   
 
   buffer = B.Buffer();
@@ -250,22 +289,39 @@ void AngularPowerSpectrum::KLCompression() {
     }
   }
 
-  SaveDistributedMatrix("eigenvectors", &B);
+
+
+
+
+
+
+
+
+  SaveDistributedMatrix("eigenvectors", B);
   //MatrixInfo(B);
 
   for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
-  cutoff++; //view indexing  is not inclusive of cutoff
-  
-  //temp is a view of B
-  View(temp, B, 0, 0, B.Height(), cutoff);
+  bins_ = cutoff + 1;
+  //B_prime is a view of B
+  View(B_prime, B, 0, 0, B.Height(), bins_);
 
   auto temp_overdensity_(overdensity_);
-  Gemv(TRANSPOSE, 1.0, temp, overdensity_, 0.0, temp_overdensity_);
+  Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
-  // Print(overdensity_, "overdensity");
+  Print(overdensity_, "overdensity");
   // Print(w, "eigenvalues");
 
-
+  //Noise matrix is kLargeNumber*P+inverse_density_*I
+  Copy(B, test7);
+  Gemm(TRANSPOSE, NORMAL, kLargeNumber, B_prime, P, inverse_density_, test7);
+  Gemm(NORMAL, NORMAL, 1.0, test7, B_prime, 0.0, noise_);
+  for (int i = 0; i < bands_; ++i){
+    Gemm(TRANSPOSE, NORMAL, 1.0, B_prime, signal_[i], 0.0, test7);
+    signal_[i] = DistMatrix<double>(*grid_);
+    Zeros( signal_[i], bins_, bins_);
+    local_signal[i]  = std::vector<double>();
+    Gemm(NORMAL, NORMAL, 1.0, test7, B_prime, 0.0, signal_[i]);
+  }
 }
 
 void AngularPowerSpectrum::MatrixInfo(DistMatrix<double> &m){
@@ -288,16 +344,25 @@ void AngularPowerSpectrum::CreateOverdensity() {
   overdensity_ = temp;
 }
 
+void AngularPowerSpectrum::CalculateDifference() {
+  difference_ = DistMatrix<double>(*grid_);
+  local_difference = std::vector<double>(local_height_ * local_width_, 0.0f);
+
+  for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
+      // Form global column index from local column index
+      const Int j = grid_col_ + jLoc*grid_width_;
+      for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
+          // Form global row index from local row index
+          const Int i = grid_row_ + iLoc*grid_height_;
+          // If diagonal entry, set to one, otherwise zero
+          local_difference[iLoc + jLoc * local_height_] = overdensity_.Get(i, 0) * overdensity_.Get(j, 0) - NoiseAt(i, j);
+      }
+  }
+  difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference.data(), local_height_ );
+}
+
 /*********************
  * To Do:
  ********************/
-void AngularPowerSpectrum::CalculateCovariance() {}
 
-
-void AngularPowerSpectrum::EstimateC() {}
-
-void AngularPowerSpectrum::ExpectedCovariance() {}
-
-void AngularPowerSpectrum::CalculateFisher() {}
-
-void AngularPowerSpectrum::RecalculateC_L() {}
+void AngularPowerSpectrum::IterativeEstimation() {}

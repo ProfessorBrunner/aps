@@ -34,12 +34,15 @@
 #include <vector>
 #include <stdlib.h>
 
+  #include "OverdensityMap.h"
+
 #include "elemental-lite.hpp"
 
 using namespace elem;
 
 class AngularPowerSpectrum {
  public:
+  OverdensityMap mp_;
   ///Number of Pixels. Number of pixels in the map.
   int bins_;
   /// Total number of bands.
@@ -70,6 +73,8 @@ class AngularPowerSpectrum {
   std::vector<DistMatrix<double>> signal_;
   /// Sum matrix. Calculated in calculate_signal. Used in KL-compression.
   DistMatrix<double> sum_;
+  DistMatrix<double> noise_;
+  DistMatrix<double> difference_;
   /// Communication grid. Used for Distributed Matrix functions.
   Grid *grid_;
   /// Grid Height
@@ -88,6 +93,8 @@ class AngularPowerSpectrum {
   std::vector<std::vector<double>> local_signal;
   ///  The local slice of the sum matrix.
   std::vector<double> local_sum;
+  ///  The local slice of the difference matrix.
+  std::vector<double> local_difference;
   ///  Output directory for writing
   std::string output_directory_;
   ///  Test directory for writing
@@ -119,10 +126,6 @@ class AngularPowerSpectrum {
   void MatrixInfo(DistMatrix<double,VR,STAR> &m);
 
   void CreateOverdensity();
-  /**
-   * Build Covariance Matrix
-   */
-  void CalculateCovariance();
 
   /**
    * Build Signal and Sum Matrices
@@ -135,25 +138,24 @@ class AngularPowerSpectrum {
   void KLCompression();
 
   /**
+   * Build Data Covariance Matrix minus Noise Matrix 
+   */
+  void CalculateDifference();
+
+  /**
    * Estimates the APS given Signal & Covariance Matrices
    */
-  void EstimateC();
+  void IterativeEstimation();
 
-  /**
-   * Build Expected Covariance Matrix based on C_l
-   * Previously named calculate_difference 
-   */
-  void ExpectedCovariance();
+  // /**
+  //  * Build Fisher Matrix & Weighted Average
+  //  */
+  // void CalculateFisher();
 
-  /**
-   * Build Fisher Matrix & Weighted Average
-   */
-  void CalculateFisher();
-
-  /**
-   * Recalculate C_l from the Fisher Matrix
-   */
-  void RecalculateC_L();
+  // /**
+  //  * Recalculate C_l from the Fisher Matrix
+  //  */
+  // void RecalculateC_L();
 
   /**
    * Prints the given vector
@@ -163,7 +165,7 @@ class AngularPowerSpectrum {
   /*
    * Saves the DistMatrix with the given file name using Elemental's Write function
    */
-  void SaveDistributedMatrix(std::string name, DistMatrix<double> *matrix);
+  void SaveDistributedMatrix(std::string name, DistMatrix<double> &matrix);
 
   /// Local barrier method
   inline void Barrier(){
@@ -186,8 +188,12 @@ class AngularPowerSpectrum {
         std::bind1st(std::multiplies<double>(), a));
   }
 
+  inline double NoiseAt(int i, int j) {
+    return ((double) i == j) * inverse_density_ + kLargeNumber;
+  }
+
   inline double NoiseSqrtAt(int i, int j) {
-    return sqrt(((double) i == j) * inverse_density_ + kLargeNumber); 
+    return sqrt(NoiseAt(i,j)); 
   }
 };
 #endif
