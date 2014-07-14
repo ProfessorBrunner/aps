@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     save_raw_double_array(test_root, filename, A, g_bins*g_bins*g_bands);
     sprintf(filename, "iter_%d_B", n);
     save_raw_double_array(test_root, filename, B, g_bins*g_bins*g_bands);
-    sprintf(filename, "iter_%d_F", n);
+    sprintf(filename, "iter_%d_fisher", n);
     save_raw_double_array(test_root, filename, F, g_bands*g_bands);
     sprintf(filename, "iter_%d_C", n);
     save_raw_double_array(test_root, filename, C, g_bands);

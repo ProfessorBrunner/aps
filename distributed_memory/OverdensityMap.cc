@@ -48,7 +48,6 @@ OverdensityMap::OverdensityMap()
        dec_(NULL) {}
 
 OverdensityMap::~OverdensityMap() {
-  std::cout << "OverdensityMap is destroyed" << std::endl;
   if (healpix_map_) free(healpix_map_);
   if (overdensity_) free(overdensity_);
   if (ra_) free(ra_);

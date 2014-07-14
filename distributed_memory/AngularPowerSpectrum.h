@@ -69,6 +69,8 @@ class AngularPowerSpectrum {
   double *dec_;
   /// A boolean check if this process is the root.
   bool is_root_;
+  /// Flag set if KL compression, if so model covariance recalcution.
+  bool is_compressed_;
   /// A vector of DistMatrices representing the signal matrix.
   std::vector<DistMatrix<double>> signal_;
   /// Sum matrix. Calculated in calculate_signal. Used in KL-compression.
@@ -99,6 +101,8 @@ class AngularPowerSpectrum {
   std::string output_directory_;
   ///  Test directory for writing
   std::string test_directory_;
+  ///  Current iteration of C estimation
+  int iteration_;
 
   ///  Conversion factor for degrees to radians
   static constexpr double kDegreeToRadian = M_PI/180.0;
@@ -142,20 +146,16 @@ class AngularPowerSpectrum {
    */
   void CalculateDifference();
 
-  /**
-   * Estimates the APS given Signal & Covariance Matrices
-   */
-  void IterativeEstimation();
 
   // /**
   //  * Build Fisher Matrix & Weighted Average
   //  */
   // void CalculateFisher();
 
-  // /**
-  //  * Recalculate C_l from the Fisher Matrix
-  //  */
-  // void RecalculateC_L();
+  /**
+   * Recalculate C_l using quadratic method
+   */
+  void EstimateC();
 
   /**
    * Prints the given vector
@@ -166,6 +166,8 @@ class AngularPowerSpectrum {
    * Saves the DistMatrix with the given file name using Elemental's Write function
    */
   void SaveDistributedMatrix(std::string name, DistMatrix<double> &matrix);
+
+  void SaveMatrix(std::string name, Matrix<double> &matrix);
 
   /// Local barrier method
   inline void Barrier(){

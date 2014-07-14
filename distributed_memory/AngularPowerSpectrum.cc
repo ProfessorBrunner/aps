@@ -36,12 +36,17 @@
 #include <functional>
 
 #include "elemental-lite.hpp"
+#include ELEM_IDENTITY_INC
+#include ELEM_SQUAREROOT_INC
+#include ELEM_AXPY_INC
 #include ELEM_HEMM_INC
 #include ELEM_ONES_INC
 #include ELEM_DIAGONAL_INC
 #include ELEM_SYMM_INC
 #include ELEM_COPY_INC
 #include ELEM_GEMV_INC
+#include ELEM_SYMMETRICINVERSE_INC
+#include ELEM_TRACE_INC
 
 #include "chealpix.h"
 #include "fitsio.h"
@@ -71,7 +76,8 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        grid_col_(grid.Col()),
        local_height_(Length(bins, grid_row_, grid_height_)),
        local_width_(Length(bins, grid_col_, grid_width_)),
-       is_root_(grid.Rank() == 0) {
+       is_root_(grid.Rank() == 0),
+       is_compressed_(false) {
 }
 
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
@@ -83,6 +89,7 @@ AngularPowerSpectrum::~AngularPowerSpectrum() {}
 void AngularPowerSpectrum::run() {
   if (is_root_) std::cout << "Running AngularPowerSpectrum" << std::endl;
   Timer timer;
+  Timer iteration_timer;
   double elapsed;
 
   CreateOverdensity();
@@ -115,9 +122,16 @@ void AngularPowerSpectrum::run() {
 
   Barrier();
   timer.Start();
-  Print(overdensity_, "overdensity_");
+  //Print(overdensity_, "overdensity_");
   CalculateDifference();
-  //IterativeEstimation();
+  for (iteration_ = 1; iteration_ <= 1; ++iteration_) {
+    Barrier();
+    iteration_timer.Start();
+    EstimateC();
+    Barrier();
+    elapsed = iteration_timer.Stop();
+    if (is_root_) std::cout << "Iteration " << iteration_ << " time: "<< elapsed << std::endl;
+  }
   Barrier();
   elapsed = timer.Stop();
   if (is_root_) std::cout << "Total iteration time " << elapsed << std::endl;
@@ -233,7 +247,13 @@ void AngularPowerSpectrum::SaveDistributedMatrix(std::string name,
   Write(matrix, test_directory_ + name, BINARY_FLAT);
 }
 
+void AngularPowerSpectrum::SaveMatrix(std::string name, 
+    Matrix<double> &matrix) {
+  Write(matrix, test_directory_ + name, BINARY_FLAT);
+}
+
 void AngularPowerSpectrum::KLCompression() {
+  is_compressed_ = true;
   DistMatrix<double> temp(*grid_), B(*grid_), B_prime(*grid_);
   DistMatrix<double> P(*grid_);
   DistMatrix<double> test7(*grid_);
@@ -361,8 +381,85 @@ void AngularPowerSpectrum::CalculateDifference() {
   difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference.data(), local_height_ );
 }
 
-/*********************
- * To Do:
- ********************/
+void AngularPowerSpectrum::EstimateC() {
+  DistMatrix<double> P(*grid_), I(*grid_), temp1(*grid_), temp2(*grid_);
+  std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
+  Matrix<double> fisher, average;
 
-void AngularPowerSpectrum::IterativeEstimation() {}
+  if (iteration_ != 0 || is_compressed_) {
+    //Must recalculate sum
+    Zeros( sum_, bins_, bins_);
+    for(int k = 0; k < bands_; ++k) {
+      Axpy(c_[k], signal_[k], sum_);
+    }
+  }
+
+  std::cout << "Calculating Model Covariance Inverse" << std::endl;
+  Ones( P, bins_, bins_);
+  Identity( I, bins_, bins_ );
+  Axpy(kLargeNumber, P, sum_);
+  Axpy(inverse_density_, I, sum_);
+
+  DistMatrix<double>& covariance_inv = sum_;
+  SymmetricInverse(LOWER, sum_); //this didn't work with UPPER
+
+  /* TODO(Alex): Could use Hemm for symetric multiplication */
+  std::cout << "Fisher Matrix" << std::endl;
+  for (int k = 0; k < bands_; ++k) {
+    Zeros(A[k], bins_, bins_);
+    Gemm(NORMAL, NORMAL, 1.0, covariance_inv, signal_[k], 0.0, A[k]);
+  }
+
+  Zeros(temp1, bins_, bins_);
+  Zeros(fisher, bands_, bands_);
+  for (int k = 0; k < bands_; ++k) {
+    for (int k_p = 0; k_p < bands_; ++k_p) {
+      Gemm(NORMAL, NORMAL, 1.0, A[k], A[k_p], 0.0, temp1);
+      fisher.Set(k_p, k, 0.5 * Trace(temp1));
+    }
+  }
+  Print(fisher, "fisher");
+
+  std::cout << "Calculating Average vector" << std::endl;
+  Zeros(temp2, bins_, bins_);
+  Zeros(average, bands_, 1);
+  for (int k = 0; k < bands_; ++k) {
+    Gemm(NORMAL, NORMAL, 1.0, A[k], covariance_inv, 0.0, temp1);
+    Gemm(NORMAL, NORMAL, 1.0, difference_, temp1, 0.0, temp2);
+    average.Set(k, 0, Trace(temp2));
+  }
+
+# ifdef APS_OUTPUT_TEST
+  SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_covariance_model" , covariance_inv);
+  SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
+  SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
+# endif
+  
+if (is_root_) {
+  Matrix<double> fisher_inv_sqrt;
+  Matrix<double> temp3, temp4;
+  std::vector<double> row_sum(bands_, 0.0);
+
+  Copy(fisher, fisher_inv_sqrt);
+  SymmetricInverse(LOWER, fisher_inv_sqrt);
+  SquareRoot(fisher_inv_sqrt);
+
+  Zeros(temp3, bands_, bands_);
+  Gemm(NORMAL, NORMAL, 1.0, fisher_inv_sqrt, fisher, 0.0, temp3);
+  Copy(temp3, temp4);
+  SymmetricInverse(LOWER, temp4);
+
+  for (int j = 0; j < bands_; ++j) {
+    for (int i = 0; i < bands_; ++i) {
+      row_sum[j] += temp3.Get(i,j);
+    }
+    for (int i = 0; i < bands_; ++i) {
+      temp3.Set(i, j, temp3.Get(i,j) / row_sum[j]);
+    }
+  }
+  //This is work in progress
+
+}
+
+}
+

@@ -60,6 +60,18 @@ def compare_files(expected_file, observed_file):
         result.append(row)
 
     return result
+
+def raw_table(expected, observed):
+    print tabulate(zip(expected, observed),
+            headers = ["Expected", "Observed"], floatfmt=".4f")
+
+def raw_matrix(expected, observed):
+    np.set_printoptions(threshold=np.nan, linewidth=8000)
+    print "Expected"
+    print expected
+    print "Observed"
+    print observed
+
 def compare_files_table(expected_path, observed_path, files):
     """
     Compare two files and make a table summerizing thier differences
@@ -67,10 +79,13 @@ def compare_files_table(expected_path, observed_path, files):
     n =0
     idx = range(n*BINS,(n+1)*BINS)
     for f in files:
-        expected = load_binary_file(join(expected_path, f))[idx]
-        observed = load_binary_file(join(observed_path, f))[idx]
-        # expected = (np.reshape(expected, (BINS, BINS), order='F'))
-        # observed = (np.reshape(observed, (BINS, BINS), order='F'))
+        expected = load_binary_file(join(expected_path, f)) #[idx]
+        observed = load_binary_file(join(observed_path, f)) #[idx]
+        # expected = np.reshape(expected, (BINS, BINS))
+        # observed = np.reshape(observed, (BINS, BINS))
+        expected = np.reshape(expected, (7, 7))
+        observed = np.reshape(observed, (7, 7))
+        raw_matrix(expected, observed)
         # # idx_exp = np.argsort(expected[0])
         # # idx_obs = np.argsort(observed[0])
         # # expected = expected[:, idx_exp]
@@ -88,9 +103,7 @@ def compare_files_table(expected_path, observed_path, files):
         #     min_diff = min(abs(obs-exp), abs(obs+exp))
         #     if  min_diff > 1e-2:
         #         print "diff: {:8} exp: {:8} obs: {:8}".format(min_diff, expected[num], observed[num])
-        print tabulate(zip(expected, observed),
-            headers = ["Expected", "Observed"], floatfmt=".4f")
-
+        raw_table(expected[0], observed[0])
 
 def compare_directories(expected_path, observed_path):
     """
@@ -121,12 +134,14 @@ def compare_directories(expected_path, observed_path):
 
     #print unmatched files
     if missing_files:
+        print
         print "Following files in {} have no match in {}".format(expected_path,
                 observed_path)
         print missing_files
     if observed_files:
-        print "Following files in {} have no match in {}".format(observed_files,
-                expected_files)
+        print
+        print "Following files in {} have no match in {}".format(observed_path,
+                expected_path)
         print observed_files
 
 def main():
