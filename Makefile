@@ -24,7 +24,7 @@ distributed_memory: .FORCE
 TEST_NSIDE=8
 FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
 DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
-NUM_PROC=1
+NUM_PROC=4
 
 test_shared: shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
 	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)

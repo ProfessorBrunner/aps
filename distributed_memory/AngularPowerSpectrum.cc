@@ -109,24 +109,26 @@ void AngularPowerSpectrum::run() {
   }
 # endif
 
-  // Barrier();
-  // timer.Start();
-  // KLCompression();
-  // Barrier();
-  // elapsed = timer.Stop();
-  // if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
-  // # ifdef APS_OUTPUT_TEST
-  // for (int k = 0; k < bands_; ++k){
-  //   //Save matrix to file
-  //   SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
-  // }
-  //# endif
+  Barrier();
+  timer.Start();
+  KLCompression();
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  # ifdef APS_OUTPUT_TEST
+  for (int k = 0; k < bands_; ++k){
+    //Save matrix to file
+    SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
+  }
+  SaveDistributedMatrix("kl_noise", noise_);
+  SaveDistributedMatrix("kl_overdensity", overdensity_);
+  # endif
 
   Barrier();
   timer.Start();
   //Print(overdensity_, "overdensity_");
   CalculateDifference();
-  for (iteration_ = 1; iteration_ <= 1; ++iteration_) {
+  for (iteration_ = 1; iteration_ <= 3; ++iteration_) {
     Barrier();
     iteration_timer.Start();
     EstimateC();
@@ -245,6 +247,11 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
 }
 
 void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
+    DistMatrix<double, VC, STAR> &matrix) {
+  Write(matrix, test_directory_ + name, BINARY_FLAT);
+}
+
+void AngularPowerSpectrum::SaveDistributedMatrix(std::string name, 
     DistMatrix<double> &matrix) {
   Write(matrix, test_directory_ + name, BINARY_FLAT);
 }
@@ -311,14 +318,6 @@ void AngularPowerSpectrum::KLCompression() {
     }
   }
 
-
-
-
-
-
-
-
-
   SaveDistributedMatrix("eigenvectors", B);
   //MatrixInfo(B);
 
@@ -334,6 +333,7 @@ void AngularPowerSpectrum::KLCompression() {
   // Print(w, "eigenvalues");
 
   //Noise matrix is kLargeNumber*P+inverse_density_*I
+  Zeros(noise_, bins_, bins_);
   Copy(B, test7);
   Gemm(TRANSPOSE, NORMAL, kLargeNumber, B_prime, P, inverse_density_, test7);
   Gemm(NORMAL, NORMAL, 1.0, test7, B_prime, 0.0, noise_);
@@ -345,6 +345,8 @@ void AngularPowerSpectrum::KLCompression() {
     Gemm(NORMAL, NORMAL, 1.0, test7, B_prime, 0.0, signal_[i]);
   }
 }
+
+
 
 void AngularPowerSpectrum::MatrixInfo(DistMatrix<double> &m){
   std::cout << "Width: " << m.Width() << " Height: " << m.Height() << std::endl;
@@ -367,17 +369,16 @@ void AngularPowerSpectrum::CreateOverdensity() {
 }
 
 void AngularPowerSpectrum::CalculateDifference() {
+  if (is_root_) std::cout << "Calculating Difference" << std::endl;
   difference_ = DistMatrix<double>(*grid_);
   local_difference = std::vector<double>(local_height_ * local_width_, 0.0f);
+  DistMatrix<double, STAR, STAR> all_overdensity = overdensity_;
 
   for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
-      // Form global column index from local column index
       const Int j = grid_col_ + jLoc*grid_width_;
       for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
-          // Form global row index from local row index
           const Int i = grid_row_ + iLoc*grid_height_;
-          // If diagonal entry, set to one, otherwise zero
-          local_difference[iLoc + jLoc * local_height_] = overdensity_.Get(i, 0) * overdensity_.Get(j, 0) - NoiseAt(i, j);
+          local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - NoiseAt(i, j);
       }
   }
   difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference.data(), local_height_ );
@@ -386,10 +387,11 @@ void AngularPowerSpectrum::CalculateDifference() {
 void AngularPowerSpectrum::EstimateC() {
   DistMatrix<double> P(*grid_), I(*grid_), temp1(*grid_), temp2(*grid_);
   std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
-  Matrix<double> fisher, average;
+  Matrix<double> fisher, average, W_prime;
 
   if (iteration_ != 0 || is_compressed_) {
     //Must recalculate sum
+    if (is_root_) std::cout << "Calculating Sum" << std::endl;
     Zeros( sum_, bins_, bins_);
     for(int k = 0; k < bands_; ++k) {
       Axpy(c_[k], signal_[k], sum_);
@@ -397,10 +399,14 @@ void AngularPowerSpectrum::EstimateC() {
   }
 
   if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
-  Ones( P, bins_, bins_);
-  Identity( I, bins_, bins_ );
-  Axpy(kLargeNumber, P, sum_);
-  Axpy(inverse_density_, I, sum_);
+  if (is_compressed_) {
+    Ones( P, bins_, bins_);
+    Identity( I, bins_, bins_ );
+    Axpy(kLargeNumber, P, sum_);
+    Axpy(inverse_density_, I, sum_);
+  }else{
+    Axpy(1.0, noise_, sum_);
+  }
 
   DistMatrix<double>& covariance_inv = sum_; //more apt variable name
   SymmetricInverse(LOWER, covariance_inv); //this didn't work with UPPER
@@ -420,7 +426,7 @@ void AngularPowerSpectrum::EstimateC() {
       fisher.Set(k, k_p, result);
     }
   }
-  Print(fisher, "fisher");
+  if (is_root_) Print(fisher, "fisher");
 
   if (is_root_) std::cout << "Calculating Average vector" << std::endl;
   Zeros(temp1, bins_, bins_);
@@ -435,7 +441,7 @@ void AngularPowerSpectrum::EstimateC() {
   if (is_root_) {
     std::cout << "Calculating Window Matrix and New C" << std::endl;
     Matrix<double> fisher_inv_sqrt;
-    Matrix<double> Y, Y_inv, W, Z, temp, W_prime, row, result;
+    Matrix<double> Y, Y_inv, W, Z, temp, row, result;
     std::vector<double> row_sum(bands_, 0.0);
 
     Copy(fisher, fisher_inv_sqrt);
@@ -473,11 +479,13 @@ void AngularPowerSpectrum::EstimateC() {
       c_[i] = 0.5 * result.Get(0,0);
     }
   }
+  mpi::Broadcast(c_, bands_, 0, grid_->Comm());
 # ifdef APS_OUTPUT_TEST
   SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_covariance_model" , covariance_inv);
   if (is_root_) {
     SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
     SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
+    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_window" , W_prime);
     Matrix<double> c_matrix;
     c_matrix.Attach(bands_, 1, c_, bands_);
     SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_C" , c_matrix);

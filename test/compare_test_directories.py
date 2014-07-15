@@ -12,7 +12,7 @@ import argparse
 from tabulate import tabulate
 import pylab as plt
 
-BINS = 48
+BINS = 605
 
 def load_binary_file(file_name):
     """
@@ -74,9 +74,9 @@ def raw_matrix(expected, observed):
     print "Expected"
     print_np(expected)
     print "Observed"
-    print_np(observed* 514.140862544)
+    print_np(observed)
     print "difference"
-    print_np(expected - observed* 514.140862544)
+    print_np(expected - observed)
 
 def compare_files_table(expected_path, observed_path, files):
     """
@@ -87,11 +87,13 @@ def compare_files_table(expected_path, observed_path, files):
     for f in files:
         expected = load_binary_file(join(expected_path, f)) #[idx]
         observed = load_binary_file(join(observed_path, f)) #[idx]
+        print len(expected)
+        print len(observed)
         # expected = np.reshape(expected, (BINS, BINS))
         # observed = np.reshape(observed, (BINS, BINS))
-        expected = np.reshape(expected, (7, 7))
-        observed = np.reshape(observed, (7, 7))
-        raw_matrix(expected, observed)
+        expected = np.reshape(expected, (BINS, BINS))
+        observed = np.reshape(observed, (BINS, BINS))
+        # raw_matrix(expected, observed)
         # # idx_exp = np.argsort(expected[0])
         # # idx_obs = np.argsort(observed[0])
         # # expected = expected[:, idx_exp]
@@ -120,7 +122,7 @@ def compare_directories(expected_path, observed_path):
     """
     expected_files = [f for f in listdir(expected_path) if
             isfile(join(expected_path, f))]
-    expected_files.sort(key=lambda x: getmtime(join(expected_path, x)))
+    expected_files.sort(key=lambda x: x)
     observed_files = [f for f in listdir(observed_path) if
             isfile(join(observed_path, f))]
     missing_files = []

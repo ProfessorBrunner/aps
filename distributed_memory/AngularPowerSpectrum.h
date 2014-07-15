@@ -160,6 +160,7 @@ class AngularPowerSpectrum {
    * Saves the DistMatrix with the given file name using Elemental's Write function
    */
   void SaveDistributedMatrix(std::string name, DistMatrix<double> &matrix);
+  void SaveDistributedMatrix(std::string name, DistMatrix<double, VC, STAR>  &matrix);
 
   void SaveMatrix(std::string name, Matrix<double> &matrix);
 

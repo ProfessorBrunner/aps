@@ -101,5 +101,5 @@ int calculate_difference(double *, double *, double *, double *, double *, doubl
 double calculate_products(double *, double *, double *, double *, double *, double *);
 int calculate_Fisher(double *, double *);
 int print_Fisher(double *, int, FILE *);
-int calculate_KL_C(double *, double *, double *, double *, FILE *);
+int calculate_KL_C(double *, double *, double *, double *, FILE *, char* test_root, int iteration);
 int print_values(double *, int *, int *, double *, double *, int, FILE *);

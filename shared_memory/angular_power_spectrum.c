@@ -294,7 +294,7 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   invert_matrix(F, g_bands);
   
   // Recalculate the C_l. 
-  calculate_KL_C(C, C_change, F, average, output_Window);
+  calculate_KL_C(C, C_change, F, average, output_Window, test_root, iteration);
   
   // Print out the final values for this iteration. 
   print_values(C, C_start, C_stop, C_change, F, iteration, output_C);
@@ -451,7 +451,7 @@ int print_Fisher(double *F, int iteration, FILE *output_Fisher)
 
 /** A function to calculate the C_l from the Fisher matrix. Returns non-zero 
   * if the change in C_l are greater than the errors. */
-int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE *output_Window)
+int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE *output_Window, char* test_root, int iteration)
 {
   int l, l_prime, hold;
   double sum, *invsqrtF, *A, *B, *D, *W;
@@ -494,6 +494,11 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
     printf("\n");
     fprintf(output_Window, "\n");
   }
+# ifdef APS_OUTPUT_TEST
+  char filename[kMaxChars];
+  sprintf(filename, "iter_%d_window", iteration);
+  save_raw_double_array(test_root, filename, W, g_bands*g_bands);
+# endif
 
   hold = 0;
   for (l=0; l<g_bands; l++) {
