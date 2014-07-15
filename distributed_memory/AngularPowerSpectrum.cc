@@ -396,7 +396,7 @@ void AngularPowerSpectrum::EstimateC() {
     }
   }
 
-  std::cout << "Calculating Model Covariance Inverse" << std::endl;
+  if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
   Ones( P, bins_, bins_);
   Identity( I, bins_, bins_ );
   Axpy(kLargeNumber, P, sum_);
@@ -406,7 +406,7 @@ void AngularPowerSpectrum::EstimateC() {
   SymmetricInverse(LOWER, covariance_inv); //this didn't work with UPPER
 
   /* TODO(Alex): Could use Hemm for symetric multiplication */
-  std::cout << "Fisher Matrix" << std::endl;
+  if (is_root_) std::cout << "Fisher Matrix" << std::endl;
   for (int k = 0; k < bands_; ++k) {
     Zeros(A[k], bins_, bins_);
     Gemm(NORMAL, NORMAL, 1.0, covariance_inv, signal_[k], 0.0, A[k]);
@@ -416,13 +416,13 @@ void AngularPowerSpectrum::EstimateC() {
   for (int k = 0; k < bands_; ++k) {
     for (int k_p = k; k_p < bands_; ++k_p) {
       double result = 0.5 * TraceMultiply(A[k], A[k_p]);
-      fisher.Set(bands_-1-k_p, bands_-1-k, result);
-      fisher.Set(bands_-1-k, bands_-1-k_p, result);
+      fisher.Set(k_p, k, result);
+      fisher.Set(k, k_p, result);
     }
   }
   Print(fisher, "fisher");
 
-  std::cout << "Calculating Average vector" << std::endl;
+  if (is_root_) std::cout << "Calculating Average vector" << std::endl;
   Zeros(temp1, bins_, bins_);
   Zeros(temp2, bins_, bins_);
   Zeros(average, bands_, 1);
@@ -430,41 +430,59 @@ void AngularPowerSpectrum::EstimateC() {
     Gemm(NORMAL, NORMAL, 1.0, A[k], covariance_inv, 0.0, temp1);
     average.Set(k, 0, TraceMultiply(difference_, temp1));
   }
+  
 
+  if (is_root_) {
+    std::cout << "Calculating Window Matrix and New C" << std::endl;
+    Matrix<double> fisher_inv_sqrt;
+    Matrix<double> Y, Y_inv, W, Z, temp, W_prime, row, result;
+    std::vector<double> row_sum(bands_, 0.0);
+
+    Copy(fisher, fisher_inv_sqrt);
+    SymmetricInverse(LOWER, fisher_inv_sqrt);
+    SquareRoot(fisher_inv_sqrt);
+
+    Zeros(Y, bands_, bands_);
+
+    Gemm(NORMAL, NORMAL, 1.0, fisher_inv_sqrt, fisher, 0.0, Y);
+    Copy(Y, Y_inv);
+    SymmetricInverse(LOWER, Y_inv);
+
+    Copy(Y, W);
+    for (int j = 0; j < bands_; ++j) {
+      for (int i = 0; i < bands_; ++i) {
+        row_sum[j] += W.Get(i,j);
+      }
+      for (int i = 0; i < bands_; ++i) {
+        W.Set(i, j, W.Get(i,j) / row_sum[j]);
+      }
+    }
+    
+    Zeros(Z, bands_, bands_);
+    Zeros(temp, bands_, bands_);
+    Zeros(W_prime, bands_, bands_);
+    Gemm(NORMAL, NORMAL, 1.0, W, Y_inv, 0.0, temp);
+
+    Gemm(NORMAL, NORMAL, 1.0, temp, fisher_inv_sqrt, 0.0, Z);
+    Gemm(NORMAL, NORMAL, 1.0, Z, fisher, 0.0, W_prime);
+    
+    Zeros(result, 1, 1);
+    for (int i = 0; i < bands_; ++i) {
+      View(row, Z, i, 0, 1, bands_);
+      Gemm(NORMAL, NORMAL, 1.0, row, average, 0.0, result);
+      c_[i] = 0.5 * result.Get(0,0);
+    }
+  }
 # ifdef APS_OUTPUT_TEST
   SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_covariance_model" , covariance_inv);
-  SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
-  SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
-  for (int k = 0; k < bands_; ++k) {
-    SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_A"+std::to_string(k) , A[k]);
+  if (is_root_) {
+    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
+    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
+    Matrix<double> c_matrix;
+    c_matrix.Attach(bands_, 1, c_, bands_);
+    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_C" , c_matrix);
   }
 # endif
-  
-if (is_root_) {
-  Matrix<double> fisher_inv_sqrt;
-  Matrix<double> temp3, temp4;
-  std::vector<double> row_sum(bands_, 0.0);
-
-  Copy(fisher, fisher_inv_sqrt);
-  SymmetricInverse(LOWER, fisher_inv_sqrt);
-  SquareRoot(fisher_inv_sqrt);
-
-  Zeros(temp3, bands_, bands_);
-  Gemm(NORMAL, NORMAL, 1.0, fisher_inv_sqrt, fisher, 0.0, temp3);
-  Copy(temp3, temp4);
-  SymmetricInverse(LOWER, temp4);
-
-  for (int j = 0; j < bands_; ++j) {
-    for (int i = 0; i < bands_; ++i) {
-      row_sum[j] += temp3.Get(i,j);
-    }
-    for (int i = 0; i < bands_; ++i) {
-      temp3.Set(i, j, temp3.Get(i,j) / row_sum[j]);
-    }
-  }
-  //This is work in progress
-
-}
 
 }
 

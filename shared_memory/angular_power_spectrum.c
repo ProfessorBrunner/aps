@@ -264,7 +264,7 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
 
 /** A function to estimate the angular power spectrum given the signal and covariance matrices.
   * Returns the time taken by the inversion and matrix multiplication steps. */
-double estimate_C(double *signal, double *model_covariance, double *data_covariance, double *noise, double *difference, double *average, double *A, double *B, double *F, double *C, int *C_start, int *C_stop, double *C_change, int iteration, FILE *output_C, FILE *output_Fisher, FILE *output_Window)
+double estimate_C(double *signal, double *model_covariance, double *data_covariance, double *noise, double *difference, double *average, double *A, double *B, double *F, double *C, int *C_start, int *C_stop, double *C_change, int iteration, FILE *output_C, FILE *output_Fisher, FILE *output_Window, char* test_root)
 {
   double inversetime = 0.0, multiplicationtime = 0.0;
 
@@ -281,6 +281,11 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   
   // Calculate the Fisher matrix and weighted average. 
   calculate_Fisher(F, A);
+# ifdef APS_OUTPUT_TEST
+  char filename[kMaxChars];
+  sprintf(filename, "iter_%d_fisher", iteration);
+  save_raw_double_array(test_root, filename, F, g_bands*g_bands);
+# endif
   
   // Print out the Fisher matrix. 
   print_Fisher(F, iteration, output_Fisher);

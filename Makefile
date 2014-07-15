@@ -57,6 +57,14 @@ shared_memory/KL_spectrum_output_test: .FORCE
 	@echo
 	$(MAKE) -C ./shared_memory KL_spectrum_output_test
 
+standard: .FORCE
+	@echo
+	@echo "Copying into standard"
+	@echo
+	rm -rf ./data/standard
+	cp -R data/test_shared_CL_$(TEST_NSIDE)_lcdm data/standard
+
+
 %.fits: data test/generate_inputs.py
 	@:
 

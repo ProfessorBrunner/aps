@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 
     // Calculate the C_l and Fisher matrix from the signal and covariance matrices
     tic(&time_find_c_iteration);
-    iterationtime += estimate_C(signal, model_covariance, data_covariance, noise, difference, average, A, B, F, C, C_start, C_stop, C_change, n, output_C, output_Fisher, output_Window);
+    iterationtime += estimate_C(signal, model_covariance, data_covariance, noise, difference, average, A, B, F, C, C_start, C_stop, C_change, n, output_C, output_Fisher, output_Window, test_root);
     assert(fflush(NULL)==0);
     toc(&time_find_c_iteration);
     printf("#Calculated iteration %d.  Elapsed time = %g seconds.\n", n, time_find_c_iteration.elapsed);
@@ -200,8 +200,6 @@ int main(int argc, char *argv[])
     save_raw_double_array(test_root, filename, A, g_bins*g_bins*g_bands);
     sprintf(filename, "iter_%d_B", n);
     save_raw_double_array(test_root, filename, B, g_bins*g_bins*g_bands);
-    sprintf(filename, "iter_%d_fisher", n);
-    save_raw_double_array(test_root, filename, F, g_bands*g_bands);
     sprintf(filename, "iter_%d_C", n);
     save_raw_double_array(test_root, filename, C, g_bands);
 
