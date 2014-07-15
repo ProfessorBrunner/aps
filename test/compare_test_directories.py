@@ -65,12 +65,18 @@ def raw_table(expected, observed):
     print tabulate(zip(expected, observed),
             headers = ["Expected", "Observed"], floatfmt=".4f")
 
+def print_np(matrix):
+    for r in matrix:
+        print ' '.join(['%3.10f' % x for x in r])
+
 def raw_matrix(expected, observed):
     np.set_printoptions(threshold=np.nan, linewidth=8000)
     print "Expected"
-    print expected
+    print_np(expected)
     print "Observed"
-    print observed
+    print_np(observed* 514.140862544)
+    print "difference"
+    print_np(expected - observed* 514.140862544)
 
 def compare_files_table(expected_path, observed_path, files):
     """
@@ -92,10 +98,10 @@ def compare_files_table(expected_path, observed_path, files):
         # # observed = observed[:, idx_obs]
         # # print tabulate(zip(expected[0], observed[0]),
         # #     headers = ["Expected", "Observed"])
-        # plt.pcolor(expected)
-        # plt.show()
-        # plt.pcolor(observed)
-        # plt.show()
+        plt.pcolor(expected)
+        plt.show()
+        plt.pcolor(observed)
+        plt.show()
 
 
         # for num in range(len(observed)):
@@ -103,7 +109,7 @@ def compare_files_table(expected_path, observed_path, files):
         #     min_diff = min(abs(obs-exp), abs(obs+exp))
         #     if  min_diff > 1e-2:
         #         print "diff: {:8} exp: {:8} obs: {:8}".format(min_diff, expected[num], observed[num])
-        raw_table(expected[0], observed[0])
+        #raw_table(expected[0], observed[0])
 
 def compare_directories(expected_path, observed_path):
     """

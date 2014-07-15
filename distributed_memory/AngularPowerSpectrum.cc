@@ -34,9 +34,11 @@
 #include <string>
 #include <algorithm>
 #include <functional>
+#include <stdexcept>
 
 #include "elemental-lite.hpp"
 #include ELEM_IDENTITY_INC
+#include ELEM_DOT_INC
 #include ELEM_SQUAREROOT_INC
 #include ELEM_AXPY_INC
 #include ELEM_HEMM_INC
@@ -400,8 +402,8 @@ void AngularPowerSpectrum::EstimateC() {
   Axpy(kLargeNumber, P, sum_);
   Axpy(inverse_density_, I, sum_);
 
-  DistMatrix<double>& covariance_inv = sum_;
-  SymmetricInverse(LOWER, sum_); //this didn't work with UPPER
+  DistMatrix<double>& covariance_inv = sum_; //more apt variable name
+  SymmetricInverse(LOWER, covariance_inv); //this didn't work with UPPER
 
   /* TODO(Alex): Could use Hemm for symetric multiplication */
   std::cout << "Fisher Matrix" << std::endl;
@@ -410,29 +412,32 @@ void AngularPowerSpectrum::EstimateC() {
     Gemm(NORMAL, NORMAL, 1.0, covariance_inv, signal_[k], 0.0, A[k]);
   }
 
-  Zeros(temp1, bins_, bins_);
   Zeros(fisher, bands_, bands_);
   for (int k = 0; k < bands_; ++k) {
-    for (int k_p = 0; k_p < bands_; ++k_p) {
-      Gemm(NORMAL, NORMAL, 1.0, A[k], A[k_p], 0.0, temp1);
-      fisher.Set(k_p, k, 0.5 * Trace(temp1));
+    for (int k_p = k; k_p < bands_; ++k_p) {
+      double result = 0.5 * TraceMultiply(A[k], A[k_p]);
+      fisher.Set(bands_-1-k_p, bands_-1-k, result);
+      fisher.Set(bands_-1-k, bands_-1-k_p, result);
     }
   }
   Print(fisher, "fisher");
 
   std::cout << "Calculating Average vector" << std::endl;
+  Zeros(temp1, bins_, bins_);
   Zeros(temp2, bins_, bins_);
   Zeros(average, bands_, 1);
   for (int k = 0; k < bands_; ++k) {
     Gemm(NORMAL, NORMAL, 1.0, A[k], covariance_inv, 0.0, temp1);
-    Gemm(NORMAL, NORMAL, 1.0, difference_, temp1, 0.0, temp2);
-    average.Set(k, 0, Trace(temp2));
+    average.Set(k, 0, TraceMultiply(difference_, temp1));
   }
 
 # ifdef APS_OUTPUT_TEST
   SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_covariance_model" , covariance_inv);
   SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
   SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
+  for (int k = 0; k < bands_; ++k) {
+    SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_A"+std::to_string(k) , A[k]);
+  }
 # endif
   
 if (is_root_) {
@@ -463,3 +468,24 @@ if (is_root_) {
 
 }
 
+double AngularPowerSpectrum::TraceMultiply(DistMatrix<double> &m1, DistMatrix<double> &m2) {
+  DistMatrix<double> row, col, result;
+  double sum = 0;
+  Int size = m1.Height();
+
+  if (size != m1.Width() || m2.Width() != m2.Height() || size != m2.Width()) {
+    //Check if everything is square and same
+    throw std::logic_error("Trace Multiply Dimension mismatch");
+  }
+
+  Zeros(result, 1, 1);
+  for(Int i = 0; i < size; ++i) {
+    View(row, m1, i, 0, 1, size);
+    View(col, m2, 0, i, size, 1);
+    Gemm(NORMAL, NORMAL, 1.0, row, col, 0.0, result);
+    //sum += Dot(row, col); //complains about matrix dimensions
+    sum += result.Get(0,0);
+  }
+
+  return sum;
+}

@@ -146,12 +146,6 @@ class AngularPowerSpectrum {
    */
   void CalculateDifference();
 
-
-  // /**
-  //  * Build Fisher Matrix & Weighted Average
-  //  */
-  // void CalculateFisher();
-
   /**
    * Recalculate C_l using quadratic method
    */
@@ -168,6 +162,8 @@ class AngularPowerSpectrum {
   void SaveDistributedMatrix(std::string name, DistMatrix<double> &matrix);
 
   void SaveMatrix(std::string name, Matrix<double> &matrix);
+
+  double TraceMultiply(DistMatrix<double> &m1, DistMatrix<double> &m2);
 
   /// Local barrier method
   inline void Barrier(){
@@ -197,5 +193,7 @@ class AngularPowerSpectrum {
   inline double NoiseSqrtAt(int i, int j) {
     return sqrt(NoiseAt(i,j)); 
   }
+
+
 };
 #endif
