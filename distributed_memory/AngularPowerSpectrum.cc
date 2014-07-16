@@ -91,8 +91,12 @@ AngularPowerSpectrum::~AngularPowerSpectrum() {}
 void AngularPowerSpectrum::run() {
   if (is_root_) std::cout << "Running AngularPowerSpectrum" << std::endl;
   Timer timer;
+  Timer total_timer;
   Timer iteration_timer;
   double elapsed;
+
+  Barrier();
+  total_timer.Start();
 
   CreateOverdensity();
 
@@ -109,20 +113,21 @@ void AngularPowerSpectrum::run() {
   }
 # endif
 
-  Barrier();
-  timer.Start();
-  KLCompression();
-  Barrier();
-  elapsed = timer.Stop();
-  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
-  # ifdef APS_OUTPUT_TEST
-  for (int k = 0; k < bands_; ++k){
-    //Save matrix to file
-    SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
-  }
-  SaveDistributedMatrix("kl_noise", noise_);
-  SaveDistributedMatrix("kl_overdensity", overdensity_);
-  # endif
+//   Barrier();
+//   timer.Start();
+//   KLCompression();
+//   Barrier();
+//   elapsed = timer.Stop();
+//   if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+
+// # ifdef APS_OUTPUT_TEST
+//   for (int k = 0; k < bands_; ++k){
+//     //Save matrix to file
+//     SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
+//   }
+//   SaveDistributedMatrix("kl_noise", noise_);
+//   SaveDistributedMatrix("kl_overdensity", overdensity_);
+// # endif
 
   Barrier();
   timer.Start();
@@ -139,9 +144,14 @@ void AngularPowerSpectrum::run() {
   Barrier();
   elapsed = timer.Stop();
   if (is_root_) std::cout << "Total iteration time " << elapsed << std::endl;
+
 # ifdef APS_OUTPUT_TEST
     SaveDistributedMatrix("difference" , difference_);
 # endif
+
+  Barrier();
+  total_timer.Stop();
+  if (is_root_) std::cout << "Total run time " << elapsed << std::endl;
 }
 
 
@@ -274,15 +284,7 @@ void AngularPowerSpectrum::KLCompression() {
   Ones( P, bins_, bins_);
   p = - kLargeNumber / ( inverse_density_ * (bins_ * kLargeNumber + inverse_density_) );
   q = 1.0 / inverse_density_;
-  //shared
-  //noise: 1000000.765106 1000000
-  //inverse noise: 1.30531 -0.00170183
 
-  //distributed
-  //p -1700.14 q 1.30701 inverse density 0.765106
-  //inverse noise -1698.83 -1700.14
-  //std::cout << "p " << p << " q " << q << " inverse density " << inverse_density_<<std::endl;
-  //std::cout << "inverse noise "<< p + q << " " << p << std::endl;
   //Symm(RIGHT)    C:= a B A    + b C
   //Symm(RIGHT) temp:= p P sum_ + q temp
   Symm(RIGHT, UPPER, p, sum_, P, q, temp);
@@ -290,21 +292,6 @@ void AngularPowerSpectrum::KLCompression() {
   //Print(temp, "Vector to be eigenvalued");
 
   HermitianEig(UPPER, temp, w, B, DESCENDING);
-
-  // DistMatrix<double> eigen_diagonal(*grid_);
-  // DistMatrix<double> test7(*grid_), test8(*grid_);
-  // std::vector<double> diagonal(w.Height());
-  // for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
-  // Diagonal(eigen_diagonal, diagonal);
-  // Ones( test7, bins_, bins_);
-  // Ones( test8, bins_, bins_);
-  // Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
-  // Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
-  // Print(B, "Eigenvectors");
-  // Print(eigen_diagonal, "Diagonal");
-  // Print(temp, "Original Noise*Sum");
-  // Print(test8, "Recreated");
-  
 
   buffer = B.Buffer();
   for( Int jLoc=0; jLoc<local_width_; ++jLoc ) {
@@ -326,7 +313,8 @@ void AngularPowerSpectrum::KLCompression() {
   //B_prime is a view of B
   View(B_prime, B, 0, 0, B.Height(), bins_);
 
-  auto temp_overdensity_(overdensity_);
+  DistMatrix<double, VC, STAR>  temp_overdensity_(*grid_);
+  Zeros(temp_overdensity_, bins_, 1);
   Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
   Print(overdensity_, "overdensity");
@@ -389,6 +377,8 @@ void AngularPowerSpectrum::EstimateC() {
   std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   Matrix<double> fisher, average, W_prime;
 
+  if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
+
   if (iteration_ != 0 || is_compressed_) {
     //Must recalculate sum
     if (is_root_) std::cout << "Calculating Sum" << std::endl;
@@ -398,8 +388,7 @@ void AngularPowerSpectrum::EstimateC() {
     }
   }
 
-  if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
-  if (is_compressed_) {
+  if (!is_compressed_) {
     Ones( P, bins_, bins_);
     Identity( I, bins_, bins_ );
     Axpy(kLargeNumber, P, sum_);
