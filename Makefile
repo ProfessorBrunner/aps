@@ -27,12 +27,15 @@ DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
 NUM_PROC=4
 
 test_shared: shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
+	rm -rf data/test_shared_CL_$(TEST_NSIDE)_lcdm
 	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
+	./test/cat_signal.bash data/test_shared_CL_$(TEST_NSIDE)_lcdm
 	./test/compare_test_directories.py data/standard data/test_shared_CL_$(TEST_NSIDE)_lcdm
 
 test_distributed: distributed_memory/aps_test $(FITS) $(DAT)
 	rm -rf data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS) $(DAT)
+	./test/cat_signal.bash data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 	./test/compare_test_directories.py data/standard data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 
 test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $(FITS) $(DAT)
@@ -41,8 +44,12 @@ test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $
 	@echo "Clearing test output directories"
 	rm -rf data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 	rm -rf data/test_shared_CL_$(TEST_NSIDE)_lcdm
+
 	./shared_memory/KL_spectrum_output_test $(FITS) $(DAT)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS) $(DAT)
+
+	./test/cat_signal.bash data/test_shared_CL_$(TEST_NSIDE)_lcdm
+	./test/cat_signal.bash data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 	./test/compare_test_directories.py data/test_shared_CL_$(TEST_NSIDE)_lcdm data/test_distributed_CL_$(TEST_NSIDE)_lcdm
 
 distributed_memory/aps_test: .FORCE

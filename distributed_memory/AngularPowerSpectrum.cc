@@ -109,25 +109,35 @@ void AngularPowerSpectrum::run() {
 # ifdef APS_OUTPUT_TEST
   for (int k = 0; k < bands_; ++k){
     //Save matrix to file
-    SaveDistributedMatrix("signal" + std::to_string(k), signal_[k]);
+    //TODO(Alex): This could be done with sstream and fails
+    //            with more than 999 bands
+    std::string file_name("signal");
+    if (k<100) file_name += "0";
+    if (k<10) file_name += "0";
+    file_name += std::to_string(k), signal_[k];
+    SaveDistributedMatrix(file_name, signal_[k]);
   }
 # endif
 
-//   Barrier();
-//   timer.Start();
-//   KLCompression();
-//   Barrier();
-//   elapsed = timer.Stop();
-//   if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  Barrier();
+  timer.Start();
+  KLCompression();
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
 
-// # ifdef APS_OUTPUT_TEST
-//   for (int k = 0; k < bands_; ++k){
-//     //Save matrix to file
-//     SaveDistributedMatrix("kl_signal" + std::to_string(k), signal_[k]);
-//   }
-//   SaveDistributedMatrix("kl_noise", noise_);
-//   SaveDistributedMatrix("kl_overdensity", overdensity_);
-// # endif
+# ifdef APS_OUTPUT_TEST
+  for (int k = 0; k < bands_; ++k){
+    //Save matrix to file
+    std::string file_name("kl_signal");
+    if (k<100) file_name += "0";
+    if (k<10) file_name += "0";
+    file_name += std::to_string(k), signal_[k];
+    SaveDistributedMatrix(file_name, signal_[k]);
+  }
+  SaveDistributedMatrix("kl_noise", noise_);
+  SaveDistributedMatrix("kl_overdensity", overdensity_);
+# endif
 
   Barrier();
   timer.Start();
@@ -317,7 +327,6 @@ void AngularPowerSpectrum::KLCompression() {
   Zeros(temp_overdensity_, bins_, 1);
   Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
-  Print(overdensity_, "overdensity");
   // Print(w, "eigenvalues");
 
   //Noise matrix is kLargeNumber*P+inverse_density_*I
@@ -362,13 +371,25 @@ void AngularPowerSpectrum::CalculateDifference() {
   local_difference = std::vector<double>(local_height_ * local_width_, 0.0f);
   DistMatrix<double, STAR, STAR> all_overdensity = overdensity_;
 
-  for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
-      const Int j = grid_col_ + jLoc*grid_width_;
-      for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
-          const Int i = grid_row_ + iLoc*grid_height_;
-          local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - NoiseAt(i, j);
-      }
+  if (!is_compressed_) {
+    for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
+        const Int j = grid_col_ + jLoc*grid_width_;
+        for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
+            const Int i = grid_row_ + iLoc*grid_height_;
+            local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - NoiseAt(i, j);
+        }
+    }
+  }else{
+    double *buffer = noise_.Buffer();
+    for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
+        const Int j = grid_col_ + jLoc*grid_width_;
+        for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
+            const Int i = grid_row_ + iLoc*grid_height_;
+            local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - buffer[iLoc + jLoc * local_height_];
+        }
+    }
   }
+
   difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference.data(), local_height_ );
 }
 
