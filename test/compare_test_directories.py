@@ -52,9 +52,6 @@ def print_numpy_with_format(matrix):
     for r in matrix:
         print ' '.join(['%3.10f' % x for x in r])
 
-
-
-
 def raw_matrix(expected, observed):
     np.set_printoptions(threshold=np.nan, linewidth=8000)
     print "Expected"
@@ -64,6 +61,32 @@ def raw_matrix(expected, observed):
     print "difference"
     print_numpy_with_format(expected - observed)
 
+def get_file_error(expected_file, observed_file, reshape=False):
+    """
+    Load two binary data files and calculate and calculate errors.
+    Args:
+    expected_file: path to the "true" value binary file
+    observed_file: path to the observed value binary file
+    reshape: Boolean, if True attempt return results reshaped as square matrix
+    """
+    expected = load_binary_file(expected_file)
+    observed = load_binary_file(observed_file)
+    if not expected.size == observed.size:
+        print "Size mismatch at {} and {}".format(expected_file, observed_file)
+        return None
+    if reshape:
+        n = sqrt(len(expected))
+        if n != int(n):
+            print "Matrix is not square {}".format(expected_file, observed_file)
+            return None
+        expected = np.reshape(expected, (n, n))
+        observed = np.reshape(observed, (n, n))
+
+    error = expected - observed
+    relative_error = error / expected
+
+    return (expected, observed, error, relative_error)
+
 def custom_compare_files(expected_path, observed_path, files):
     """
     This function is edited to do analysis of given files for debugging.
@@ -71,11 +94,8 @@ def custom_compare_files(expected_path, observed_path, files):
     n = 0
     idx = range(n*BINS,(n+1)*BINS)
     for f in files:
-        expected = load_binary_file(join(expected_path, f))
-        observed = load_binary_file(join(observed_path, f))
-        n = sqrt(expected)
-        expected = np.reshape(expected, (n, n))
-        observed = np.reshape(observed, (n, n))
+        expected, observed, error, relative_error = \
+            get_file_error(join(expected_path, f), join(observed_path, f), True)
         # raw_matrix(expected, observed)
         # # idx_exp = np.argsort(expected[0])
         # # idx_obs = np.argsort(observed[0])
@@ -101,14 +121,15 @@ def plot_heatmap(matrix, ax, label):
     vextreme = max(abs(vmin), vmax)
     k = kurtosis(matrix.flat)
     std = tstd(matrix.flat)
-    print "k: {} std: {}".format(k, std)
+    #print "k: {} std: {}".format(k, std)
     args = {'vmax':vextreme,
             'vmin':-vextreme,
             'interpolation':'none',
             'aspect':'auto',
-            'origin':'lower'}
+            'origin':'lower',
+            'cmap':plt.get_cmap('RdBu')} #Spectral
     if k > 15:
-        norm = SymLogNorm(std, vmin=-vextreme, vmax=vextreme)
+        norm = SymLogNorm(std/3.0, vmin=-vextreme, vmax=vextreme)
         args['norm'] = norm
         label = "Symmetric log of " + label
     plt.imshow(matrix, **args)
@@ -121,20 +142,14 @@ def plot_heatmap(matrix, ax, label):
         ticks = np.linspace(0, 1, 9)
         tick_map = norm.inverse(ticks)
         cb.set_ticks(tick_map)
-        print(["{:.4g}".format(t) for t in tick_map])
         cb.set_ticklabels(["{:.4g}".format(t) for t in tick_map])
 
 def make_error_heatmap(expected_file, observed_file):
-    expected = load_binary_file(expected_file)
-    observed = load_binary_file(observed_file)
-    n = sqrt(len(expected))
-    print expected_file
-    expected = np.reshape(expected, (n, n))
-    observed = np.reshape(observed, (n, n))
-
-    error = expected - observed
-    relative_error = error / expected
-
+    try:
+        expected, observed, error, relative_error = \
+            get_file_error(expected_file, observed_file, reshape=True)
+    except TypeError:
+        return None
     fig = plt.figure()
 
     ax = plt.subplot(2, 1, 1)
@@ -144,7 +159,30 @@ def make_error_heatmap(expected_file, observed_file):
     plot_heatmap(relative_error, ax, "Relative Error")
     return fig
 
-def graph_directories(expected_path, observed_path,
+def make_error_boxplot(expected_files, observed_files, names):
+    errors, relative_errors = [], []
+    for expected_file, observed_file in zip(expected_files, observed_files):
+        try:
+            _, _, error, relative_error = \
+                    get_file_error(expected_file, observed_file)
+            errors.append(error)
+            relative_errors.append(relative_error)
+        except TypeError:
+            return None
+
+    fig = plt.figure()
+    ax = plt.subplot(2, 1, 1)
+    plt.boxplot(errors)
+    plt.xticks(range(1, len(names)), names)
+
+    ax = plt.subplot(2, 1, 2)
+    plt.boxplot(relative_errors)
+    plt.xticks(range(1, len(names)), names)
+
+    return fig
+
+
+def graph_directories(expected_path, observed_path, graph_type='box',
         file_regex_list=GRAPH_REGEX_LIST, output_dir=None):
     """
     Go through the files in each directory and graph comparison of pairs.
@@ -157,16 +195,44 @@ def graph_directories(expected_path, observed_path,
             matches_regex_list(f, file_regex_list) and
             isfile(join(observed_path, f))]
 
-    for f in expected_files:
-        if f in observed_files:
+    available_files = [f for f in expected_files if f in observed_files]
+
+    if graph_type == 'heat':
+        for f in available_files:
             matrix_name = f.split('.')[0]
+            print "Plotting {}".format(matrix_name)
             fig = make_error_heatmap(
                     join(expected_path, f), join(observed_path, f))
+            if not fig:
+                continue
+
             fig.suptitle(matrix_name)
             if output_dir:
                 fig.savefig("{}/{}_heatmap".format(output_dir, matrix_name))
             else:
-                plt.show()
+                fig.show()
+
+    elif graph_type == 'box':
+        groups, names = [], []
+        for regex in file_regex_list:
+            group = [f for f in available_files if regex.match(f)]
+            if group:
+                groups.append(group)
+                names.append(group[0].split('.')[0])
+        for group, matrix_name in zip(groups, names):
+            print "Plotting {}".format(' '.join(group))
+            fig = make_error_boxplot([join(expected_path, f) for f in group],
+                    [join(observed_path, f) for f in group], group)
+            if not fig:
+                continue
+
+            if output_dir:
+                fig.savefig("{}/{}_boxplot".format(output_dir, matrix_name))
+            else:
+                fig.show()
+
+
+
 
 #Also available: count, mean, std
 def file_difference_summary_table(expected_file, observed_file):
@@ -178,14 +244,11 @@ def file_difference_summary_table(expected_file, observed_file):
      error:          [min, 25%, 50%, 75%, max],
      relative_error: [min, 25%, 50%, 75%, max]}
     """
-    expected = load_binary_file(expected_file)
-    observed = load_binary_file(observed_file)
-    if not expected.size == observed.size:
-        print "Size mismatch at {} and {}".format(expected_file, observed_file)
+    try:
+        expected, observed, error, relative_error = \
+                get_file_error(expected_file, observed_file)
+    except TypeError:
         return None
-
-    error = abs(expected-observed)
-    relative_error = abs(error/expected)
 
     # print "error>.1"
     # error3d = np.reshape(error, (BINS, BINS, 7), order='F')
