@@ -83,9 +83,9 @@ class AngularPowerSpectrum {
   Int grid_height_;
   /// Grid Width
   Int grid_width_;
-  /// Grid Row Align
+  /// Grid Row Alignment
   Int grid_row_;
-  /// Grid Column Align
+  /// Grid Column Alignment
   Int grid_col_;
   ///  The local height of a DistMatrix
   Int local_height_;
@@ -126,9 +126,9 @@ class AngularPowerSpectrum {
   
  private:
 
-  void MatrixInfo(DistMatrix<double> &m);
-  void MatrixInfo(DistMatrix<double,VR,STAR> &m);
-
+  /**
+   * Creates a Distributed Matrix of doubles and builds the Overdensity Matrix
+   */
   void CreateOverdensity();
 
   /**
@@ -151,6 +151,25 @@ class AngularPowerSpectrum {
    */
   void EstimateC();
 
+
+
+/******************************************************************************
+ ******************************* HELPER FUNCTIONS *****************************
+ ******************************************************************************/
+
+  /**
+   * A function for testing purposes that prints the Width, the total number of elements, 
+   * memory usage, and whether or not  he matrix is a view.
+   */
+  void MatrixInfo(DistMatrix<double> &m);
+
+  /**
+   * A function for testing purposes that prints the Width,
+   * the total number of elements, memory usage, and whether or not 
+   * the matrix is a view. (For a DistMatrix with the VC, STAR distribution pattern)
+   */
+  void MatrixInfo(DistMatrix<double,VR,STAR> &m);
+
   /**
    * Prints the given vector
    */
@@ -160,10 +179,20 @@ class AngularPowerSpectrum {
    * Saves the DistMatrix with the given file name using Elemental's Write function
    */
   void SaveDistributedMatrix(std::string name, DistMatrix<double> &matrix);
+
+  /*
+   * Overloaded Save function for a DistMatrix with a different distribution
+   */
   void SaveDistributedMatrix(std::string name, DistMatrix<double, VC, STAR>  &matrix);
 
+  /*
+   * Saves the Matrix with the given file name using Elemental's Write function
+   */
   void SaveMatrix(std::string name, Matrix<double> &matrix);
 
+  /*
+   * Performs a Trace operation on the given matrices
+   */
   double TraceMultiply(DistMatrix<double> &m1, DistMatrix<double> &m2);
 
   /// Local barrier method
@@ -187,10 +216,12 @@ class AngularPowerSpectrum {
         std::bind1st(std::multiplies<double>(), a));
   }
 
+  ///Returns the value of the Noise matrix at the given indices
   inline double NoiseAt(int i, int j) {
     return ((double) i == j) * inverse_density_ + kLargeNumber;
   }
 
+  ///Returns the square root of the Noise matrix at the given indices
   inline double NoiseSqrtAt(int i, int j) {
     return sqrt(NoiseAt(i,j)); 
   }
