@@ -283,7 +283,7 @@ double estimate_C(double *signal, double *model_covariance, double *data_covaria
   calculate_Fisher(F, A);
 # ifdef APS_OUTPUT_TEST
   char filename[kMaxChars];
-  sprintf(filename, "iter_%d_fisher", iteration);
+  sprintf(filename, "fisher_iter_%d", iteration);
   save_raw_double_array(test_root, filename, F, g_bands*g_bands);
 # endif
   
@@ -496,7 +496,7 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   }
 # ifdef APS_OUTPUT_TEST
   char filename[kMaxChars];
-  sprintf(filename, "iter_%d_window", iteration);
+  sprintf(filename, "window_iter_%d", iteration);
   save_raw_double_array(test_root, filename, W, g_bands*g_bands);
 # endif
 

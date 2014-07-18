@@ -122,28 +122,28 @@ void AngularPowerSpectrum::run() {
   }
 # endif
 
-  /*KL-COMPRESSION*/
-  Barrier();
-  timer.Start();
+//   /*KL-COMPRESSION*/
+//   Barrier();
+//   timer.Start();
 
-  KLCompression();
+//   KLCompression();
 
-  Barrier();
-  elapsed = timer.Stop();
-  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+//   Barrier();
+//   elapsed = timer.Stop();
+//   if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
 
-# ifdef APS_OUTPUT_TEST
-  for (int k = 0; k < bands_; ++k){
-    //Save matrix to file
-    std::string file_name("kl_signal");
-    if (k<100) file_name += "0";
-    if (k<10) file_name += "0";
-    file_name += std::to_string(k), signal_[k];
-    SaveDistributedMatrix(file_name, signal_[k]);
-  }
-  SaveDistributedMatrix("kl_noise", noise_);
-  SaveDistributedMatrix("kl_overdensity", overdensity_);
-# endif
+// # ifdef APS_OUTPUT_TEST
+//   for (int k = 0; k < bands_; ++k){
+//     //Save matrix to file
+//     std::string file_name("kl_signal");
+//     if (k<100) file_name += "0";
+//     if (k<10) file_name += "0";
+//     file_name += std::to_string(k), signal_[k];
+//     SaveDistributedMatrix(file_name, signal_[k]);
+//   }
+//   SaveDistributedMatrix("kl_noise", noise_);
+//   SaveDistributedMatrix("kl_overdensity", overdensity_);
+// # endif
 
   /*CALCULATE DIFFERENCE*/
   Barrier();
@@ -462,20 +462,22 @@ void AngularPowerSpectrum::EstimateC() {
       Gemm(NORMAL, NORMAL, 1.0, row, average, 0.0, result);
       c_[i] = 0.5 * result.Get(0,0);
     }
+
+    //Save local matrices
+# ifdef APS_OUTPUT_TEST
+    SaveMatrix("fisher"+std::string("_iter_")+std::to_string(iteration_), fisher);
+    SaveMatrix("average"+std::string("_iter_")+std::to_string(iteration_), average);
+    SaveMatrix("window"+std::string("_iter_")+std::to_string(iteration_), W_prime);
+    Matrix<double> c_matrix;
+    c_matrix.Attach(bands_, 1, c_, bands_);
+    SaveMatrix("C"+std::string("_iter_")+std::to_string(iteration_), c_matrix);
+# endif
   }
   mpi::Broadcast(c_, bands_, 0, grid_->Comm());
 
-  //Save matrices
+  //Save distributed matrix
 # ifdef APS_OUTPUT_TEST
-  SaveDistributedMatrix(std::string("iter_")+std::to_string(iteration_)+"_covariance_model" , covariance_inv);
-  if (is_root_) {
-    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_fisher" , fisher);
-    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_average" , average);
-    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_window" , W_prime);
-    Matrix<double> c_matrix;
-    c_matrix.Attach(bands_, 1, c_, bands_);
-    SaveMatrix(std::string("iter_")+std::to_string(iteration_)+"_C" , c_matrix);
-  }
+  SaveDistributedMatrix("covariance_model"+std::string("_iter_")+std::to_string(iteration_), covariance_inv);
 # endif
 
 }

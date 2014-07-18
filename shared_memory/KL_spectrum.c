@@ -192,15 +192,15 @@ int main(int argc, char *argv[])
 #   ifdef APS_OUTPUT_TEST
     //difference doesn't change
     if (n == 1) save_raw_double_array(test_root, "difference", difference, g_bins*g_bins);
-    sprintf(filename, "iter_%d_covariance_model", n);
+    sprintf(filename, "covariance_model_iter_%d", n);
     save_raw_double_array(test_root, filename, model_covariance, g_bins*g_bins);
-    sprintf(filename, "iter_%d_average", n);
+    sprintf(filename, "average_iter_%d", n);
     save_raw_double_array(test_root, filename, average, g_bands);
-    sprintf(filename, "iter_%d_A", n);
+    sprintf(filename, "A_iter_%d", n);
     save_raw_double_array(test_root, filename, A, g_bins*g_bins*g_bands);
-    sprintf(filename, "iter_%d_B", n);
+    sprintf(filename, "B_iter_%d", n);
     save_raw_double_array(test_root, filename, B, g_bins*g_bins*g_bands);
-    sprintf(filename, "iter_%d_C", n);
+    sprintf(filename, "C_iter_%d", n);
     save_raw_double_array(test_root, filename, C, g_bands);
 
 #   endif
