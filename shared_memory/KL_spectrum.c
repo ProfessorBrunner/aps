@@ -152,20 +152,20 @@ int main(int argc, char *argv[])
   }
 # endif
 
-//   // KL-Compress
-//   tic(&time_function);
-//   KL_compression(overdensity, signal, noise, data_covariance, C, output_KL, test_root); 
-//   toc(&time_function);
-//   printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
-// # ifdef APS_OUTPUT_TEST
-//   save_raw_double_array(test_root, "kl_overdensity", overdensity, g_bins);
-//   for (i = 0; i < g_bands; ++i){
-//     sprintf(filename, "kl_signal%03d", i);
-//     save_raw_double_array(test_root, filename, (signal + g_bins*g_bins*i), g_bins*g_bins);
-//   }
-//   save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
-//   save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
-// # endif
+  // KL-Compress
+  tic(&time_function);
+  KL_compression(overdensity, signal, noise, data_covariance, C, output_KL, test_root); 
+  toc(&time_function);
+  printf("#Calculated KL Compression.  Elapsed time = %g seconds.\n", time_function.elapsed);
+# ifdef APS_OUTPUT_TEST
+  save_raw_double_array(test_root, "kl_overdensity", overdensity, g_bins);
+  for (i = 0; i < g_bands; ++i){
+    sprintf(filename, "kl_signal%03d", i);
+    save_raw_double_array(test_root, filename, (signal + g_bins*g_bins*i), g_bins*g_bins);
+  }
+  save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
+  save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
+# endif
 
   F = (double *)malloc(g_bands*g_bands*sizeof(double));
   A = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));

@@ -238,15 +238,12 @@ def plot_band_powers(expected_path, observed_path, anafast_file,
     observed = load_binary_file(join(observed_path, max_file))
     band_center, anafast = np.loadtxt(anafast_file, dtype=float).T
 
-    anafast = anafast[1:] #actually remove in generate inputs
-    band_center = band_center[1:]
-
     fig = plt.figure()
     plt.plot(band_center, anafast, 'bo', label='Anafast', markersize=5)
     plt.plot(band_center, expected, 'gx', label='Shared', markersize=10)
     plt.plot(band_center, observed, 'r+', label='Distributed', markersize=10)
     plt.yscale('log')
-    #plt.ylim(10**(-4.5), 1e-1)
+    plt.ylim(10**(-1), 5e2)
     plt.xlabel(r'$\ell$', fontsize=18)
     plt.ylabel(r'$C_\ell$', fontsize=18)
     plt.legend(loc=0, numpoints=1)
@@ -406,7 +403,7 @@ def main():
     parser.add_argument("testable_dir", help="directory of output to test.")
     parser.add_argument("-f", "--file", nargs='+', dest="specific_files",
         help="compare a specific file")
-    parser.add_argument("--plot-heat", dest="plot_heat", action="store_true",
+    parser.add_argument("--heat-plot", dest="plot_heat", action="store_true",
         help="display heatmap of important plots of data")
     parser.add_argument("--box-plot", dest="plot_box", action="store_true",
         help="display error boxplot of important data")

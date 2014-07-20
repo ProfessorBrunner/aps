@@ -122,28 +122,28 @@ void AngularPowerSpectrum::run() {
   }
 # endif
 
-//   /*KL-COMPRESSION*/
-//   Barrier();
-//   timer.Start();
+  /*KL-COMPRESSION*/
+  Barrier();
+  timer.Start();
 
-//   KLCompression();
+  KLCompression();
 
-//   Barrier();
-//   elapsed = timer.Stop();
-//   if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
 
-// # ifdef APS_OUTPUT_TEST
-//   for (int k = 0; k < bands_; ++k){
-//     //Save matrix to file
-//     std::string file_name("kl_signal");
-//     if (k<100) file_name += "0";
-//     if (k<10) file_name += "0";
-//     file_name += std::to_string(k), signal_[k];
-//     SaveDistributedMatrix(file_name, signal_[k]);
-//   }
-//   SaveDistributedMatrix("kl_noise", noise_);
-//   SaveDistributedMatrix("kl_overdensity", overdensity_);
-// # endif
+# ifdef APS_OUTPUT_TEST
+  for (int k = 0; k < bands_; ++k){
+    //Save matrix to file
+    std::string file_name("kl_signal");
+    if (k<100) file_name += "0";
+    if (k<10) file_name += "0";
+    file_name += std::to_string(k), signal_[k];
+    SaveDistributedMatrix(file_name, signal_[k]);
+  }
+  SaveDistributedMatrix("kl_noise", noise_);
+  SaveDistributedMatrix("kl_overdensity", overdensity_);
+# endif
 
   /*CALCULATE DIFFERENCE*/
   Barrier();
