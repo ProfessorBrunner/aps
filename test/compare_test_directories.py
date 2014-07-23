@@ -21,8 +21,11 @@ from string import digits
 BINS = 605
 TABLE_HEADERS = ['min', '25%', '50%', '75%', 'max']
 IMPORTANT_FILES = [
-    'signal',
-    'kl_signal',
+    'covariance_model_iter_',
+    #'signal001',
+    'kl_signal001',
+    #'eigenvalues',
+    #'eigenvectors',
     'kl_noise',
     'kl_overdensity',
     'fisher_iter_[0-9]*', 
@@ -35,11 +38,19 @@ GRAPH_FILES = [
     'signal[0-9]{3}',
     'kl_signal[0-9]{3}',
     'kl_noise',
-    'kl_overdensity',
-    'fisher_iter_[0-9]*', 
-    'window_iter_[0-9]*',
-    'C_iter_[0-9]*'
+    # 'kl_overdensity',
+    # 'fisher_iter_[0-9]*', 
+    # 'window_iter_[0-9]*',
+    #'C_iter_[0-9]*',
+    'covariance_model_iter_[0-9]*',
+    'difference',
+    'preeigen',
     ]
+# GRAPH_FILES=[
+#     'kl_noise',
+#     'kl_signal001',
+#     'kl_overdensity',
+# ]
 GRAPH_REGEX_LIST = [re.compile(x) for x in GRAPH_FILES]
 
 def format_name(name, strip_numbers=False):
@@ -101,24 +112,30 @@ def get_file_error(expected_file, observed_file, reshape=False):
         return None
     if reshape:
         n = sqrt(len(expected))
-        if n == int(n):        
-            expected = np.reshape(expected, (n, n))
-            observed = np.reshape(observed, (n, n))
+        if n == int(n):
+            n = int(n)
+            expected = np.reshape(expected, (n, n), order='F')
+            observed = np.reshape(observed, (n, n), order='F')
+            #observed = expected.T
+
+    # for row in xrange(0, n):
+    #     for col in xrange(row+1, n):
+    #         observed[col,row] = observed[row,col]
 
     error = expected - observed
     relative_error = error / expected
 
     return (expected, observed, error, relative_error)
 
+THRESHOLD = .0001
 def custom_compare_files(expected_path, observed_path, files):
     """
     This function is edited to do analysis of given files for debugging.
     """
-    n = 0
-    idx = range(n*BINS,(n+1)*BINS)
     for f in files:
         expected, observed, error, relative_error = \
             get_file_error(join(expected_path, f), join(observed_path, f), True)
+
         # raw_matrix(expected, observed)
         # # idx_exp = np.argsort(expected[0])
         # # idx_obs = np.argsort(observed[0])
@@ -126,24 +143,67 @@ def custom_compare_files(expected_path, observed_path, files):
         # # observed = observed[:, idx_obs]
         # # print tabulate(zip(expected[0], observed[0]),
         # #     headers = ["Expected", "Observed"])
-        plt.pcolor(expected)
-        plt.show()
-        plt.pcolor(observed)
-        plt.show()
+        # comparison 
+        # for col in xrange(len(expected[0])):
+        #     diff = expected[:,col] - observed[:,col]
+        #     combined = expected[:,col] + observed[:,col]
+        for col_exp in xrange(len(expected[0])):
+            distances = []
+            neg_distances = []
+            for col_obs in xrange(len(expected[0])):
+                distances.append(np.linalg.norm(
+                    expected[:,col_exp] - observed[:,col_obs]))
+                neg_distances.append(np.linalg.norm(
+                    expected[:,col_exp] + observed[:,col_obs]))
+            #magnitude = np.linalg.norm(expected[:,col_exp])
+            magnitude = .001 #this is the norm
+            closest = min(distances)
+            neg_closest = min(neg_distances)
+            if closest < THRESHOLD and neg_closest < THRESHOLD:
+                observed[:,col_exp] = 0
+            elif closest < THRESHOLD:
+                observed[:,col_exp] = .001
+            elif neg_closest < THRESHOLD :
+                observed[:,col_exp] = -.001
+            #print_numpy_with_format([observed[:,col_exp],])
+            #print "distance: {} {}".format(min(distances), magnitude)
+            closest = min(closest, neg_closest)
+            print "dist: %3.10f mag: %3.10f relative: %3.10f" \
+                    % (closest, magnitude, closest/magnitude)
 
-        # for num in range(len(observed)):
+        ax = plt.subplot(1,1,1)
+        fig = plot_heatmap(observed, ax, "observed")
+        plt.show()
+        # for num in xrange(len(observed)):
         #     obs, exp = observed[num], expected[num]
         #     min_diff = min(abs(obs-exp), abs(obs+exp))
         #     if  min_diff > 1e-2:
         #         print "diff: {:8} exp: {:8} obs: {:8}".format(min_diff, expected[num], observed[num])
-        #direct_list_compare(expected[0], observed[0])
+        # direct_list_compare(expected[0], observed[0])
+
+        # ax = plt.subplot(1,1,1)
+        # fig = plot_heatmap(expected, ax, "expected")
+        # plt.show()
+        # ax = plt.subplot(1,1,1)
+        # fig = plot_heatmap(observed, ax, "observed")
+        # plt.show()
+
+
+        # ax = plt.subplot(2,1,1)
+        # fig = plot_heatmap(abs(error), ax, "abs error")
+        # ax = plt.subplot(2,1,2)
+        # fig = plot_heatmap(abs(relative_error), ax, "abs rel error")
+        # plt.show()
 
 def plot_heatmap(matrix, ax, label):
     vmax = np.max(matrix)
     vmin = np.min(matrix)
     vextreme = max(abs(vmin), vmax)
     k = kurtosis(matrix.flat)
-    std = tstd(matrix.flat)
+    try:
+        std = tstd(matrix.flat)
+    except ZeroDivisionError:
+        std = 0
     #print "k: {} std: {}".format(k, std)
     args = {'vmax':vextreme,
             'vmin':-vextreme,
@@ -162,6 +222,7 @@ def plot_heatmap(matrix, ax, label):
     ax.set_frame_on(False)
     plt.axis('off')
     # ax.grid(False)
+    ax.invert_yaxis()
     cb = plt.colorbar()
     if k > 15:
         ticks = np.linspace(0, 1, 9)
@@ -175,13 +236,16 @@ def make_error_heatmap(expected_file, observed_file):
             get_file_error(expected_file, observed_file, reshape=True)
     except TypeError:
         return None
-    fig = plt.figure(figsize=(6,8))
+    #fig = plt.figure(figsize=(6,8))
+    fig = plt.figure(figsize=(12,10))
 
-    ax = plt.subplot(2, 1, 1)
-    plot_heatmap(error, ax, "Error")
+    # ax = plt.subplot(2, 1, 1)
+    # plot_heatmap(error, ax, "Error")
+    #plot_heatmap(observed, ax, "Observed")
 
-    ax = plt.subplot(2, 1, 2)
-    plot_heatmap(relative_error, ax, "Relative Error")
+    ax = plt.subplot(1, 1, 1)
+    #plot_heatmap(relative_error, ax, "Relative Error")
+    plot_heatmap(expected, ax, "Expected")
     return fig
 
 def make_error_boxplot(expected_files, observed_files, names):
@@ -251,6 +315,7 @@ def plot_band_powers(expected_path, observed_path, anafast_file,
     if output_dir:
         fig.savefig("{}/C_anafast_comparison".format(output_dir),
                     bbox_inches='tight', dpi=180)
+        plt.close(fig)
     else:
         fig.show()
         fig.canvas.start_event_loop_default()
@@ -282,12 +347,13 @@ def graph_directories(expected_path, observed_path, graph_type='box',
                 continue
 
             fig.suptitle(format_name(matrix_name), fontsize=24, y=1.1)
+            fig.canvas.set_window_title(matrix_name)
             if output_dir:
                 fig.savefig("{}/{}_heatmap".format(output_dir, matrix_name),
                             bbox_inches='tight', dpi=180)
+                plt.close(fig)
             else:
                 fig.show()
-                fig.canvas.start_event_loop_default()
 
     elif graph_type == 'box':
         groups, names = [], []
@@ -308,12 +374,18 @@ def graph_directories(expected_path, observed_path, graph_type='box',
                 plt.xlabel("Band")
             matrix_name = format_name(matrix_name, strip_numbers=True)
             fig.suptitle(matrix_name, fontsize=24, y=1.1)
+            fig.canvas.set_window_title(matrix_name)
             if output_dir:
                 fig.savefig("{}/{}_boxplot".format(output_dir, matrix_name), 
                         bbox_inches='tight', dpi=180)
+                plt.close(fig)
             else:
                 fig.show()
-                fig.canvas.start_event_loop_default()
+    if not output_dir:
+        try:
+            fig.canvas.start_event_loop_default()
+        except:
+            pass
 
 
 
@@ -334,6 +406,14 @@ def file_difference_summary_table(expected_file, observed_file):
     except TypeError:
         return None
 
+    # observed = observed.flatten()
+    # expected = expected.flatten()
+    # error = error.flatten()
+    # relative_error = expected.flatten()
+
+
+    error = np.abs(error)
+    relative_error = np.abs(relative_error)
     # print "error>.1"
     # error3d = np.reshape(error, (BINS, BINS, 7), order='F')
     # idx = np.where(error3d>.05)
@@ -343,6 +423,7 @@ def file_difference_summary_table(expected_file, observed_file):
 
     result = []
     for array_name in ('expected', 'observed', 'error', 'relative_error'):
+        #using locals is a hacky way of doing this
         summary = Series(locals()[array_name]).describe()
         row = [array_name]
         row.extend([summary[header] for header in TABLE_HEADERS])

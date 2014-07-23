@@ -291,11 +291,38 @@ void AngularPowerSpectrum::KLCompression() {
   q = 1.0 / inverse_density_;
 
   //Storing Inverse Noise * Sum into temp_eig
-  Symm(RIGHT, UPPER, p, sum_, P, q, temp_eig);
+  //Symm(RIGHT, UPPER, p, sum_, P, q, temp_eig);
+
+  Read(temp_eig, "distributed_memory/preeigen.dat", BINARY_FLAT);
+# ifdef APS_OUTPUT_TEST
+  SaveDistributedMatrix("preeigen" , temp_eig);
+# endif
 
   //Elemental Eigensolver: solves temp_eig, eigenvalues > w, eigenvectors > B, 
   //sorted in descending order
   HermitianEig(UPPER, temp_eig, w, B, DESCENDING);
+
+  Read(B, "distributed_memory/eigenvectors.dat", BINARY_FLAT);
+  Read(w, "distributed_memory/eigenvalues.dat", BINARY_FLAT);
+# ifdef APS_OUTPUT_TEST
+  SaveDistributedMatrix("eigenvectors" , B);
+  DistMatrix<double> temp_w(w);
+  SaveDistributedMatrix("eigenvalues" , temp_w);
+# endif
+
+  DistMatrix<double> eigen_diagonal(*grid_);
+  DistMatrix<double> test7(*grid_), test8(*grid_);
+  std::vector<double> diagonal(w.Height());
+  for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
+  Diagonal(eigen_diagonal, diagonal);
+  Ones( test7, bins_, bins_);
+  Ones( test8, bins_, bins_);
+  Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
+  Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
+
+# ifdef APS_OUTPUT_TEST
+  SaveDistributedMatrix("preeigen2" , test8);
+# endif
 
   //Normalizing: B_{i,j} /= sqrt(N_{ij})
   buffer = B.Buffer();
@@ -306,7 +333,6 @@ void AngularPowerSpectrum::KLCompression() {
         buffer[iLoc+jLoc*local_height_] /= NoiseSqrtAt(i, j);
     }
   }
-  SaveDistributedMatrix("eigenvectors", B);
 
   //Creating B_prime to keep eigenvectors with eigenvalues > 1
   for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
@@ -316,20 +342,24 @@ void AngularPowerSpectrum::KLCompression() {
   //Create new overdensity vector
   DistMatrix<double, VC, STAR>  temp_overdensity_(*grid_);
   Zeros(temp_overdensity_, bins_, 1);
-  Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
+  Read(temp_overdensity_, "distributed_memory/kl_overdensity.dat", BINARY_FLAT);
+  // Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
   overdensity_ = temp_overdensity_;
 
   //Create new Noise and Signal matrices
   Zeros(noise_, bins_, bins_);
   Copy(B, temp_transform);
-  Gemm(TRANSPOSE, NORMAL, kLargeNumber, B_prime, P, inverse_density_, temp_transform);
-  Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, noise_);
+  Read(noise_, "distributed_memory/kl_noise.dat", BINARY_FLAT);
+  // Gemm(TRANSPOSE, NORMAL, kLargeNumber, B_prime, P, inverse_density_, temp_transform);
+  // Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, noise_);
   for (int i = 0; i < bands_; ++i){
-    Gemm(TRANSPOSE, NORMAL, 1.0, B_prime, signal_[i], 0.0, temp_transform);
+    //Gemm(TRANSPOSE, NORMAL, 1.0, B_prime, signal_[i], 0.0, temp_transform);
     signal_[i] = DistMatrix<double>(*grid_);
     Zeros( signal_[i], bins_, bins_);
+    // TODO(Alex): Check this is correctly resizing local buffer usage
     local_signal[i]  = std::vector<double>();
-    Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, signal_[i]);
+    //Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, signal_[i]);
+    Read( signal_[i], "distributed_memory/kl_signal00"+std::to_string(i)+".dat", BINARY_FLAT);
   }
 }
 
@@ -338,6 +368,12 @@ void AngularPowerSpectrum::CalculateDifference() {
   difference_ = DistMatrix<double>(*grid_);
   local_difference = std::vector<double>(local_height_ * local_width_, 0.0f);
   DistMatrix<double, STAR, STAR> all_overdensity = overdensity_;
+
+  double sum = 0;
+  for(int i = 0; i < bins_; ++i) {
+    sum += all_overdensity.Get(i, 0);
+  }
+  std::cout << "Overdensity sum: " << sum << std::endl;
 
   //Difference = overdensity * overdensity transpose - Noise
   if (!is_compressed_) {

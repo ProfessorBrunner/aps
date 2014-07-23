@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     sprintf(filename, "kl_signal%03d", i);
     save_raw_double_array(test_root, filename, (signal + g_bins*g_bins*i), g_bins*g_bins);
   }
-  save_raw_double_array(test_root, "kl_noise", signal, g_bins*g_bins);
+  save_raw_double_array(test_root, "kl_noise", noise, g_bins*g_bins);
   save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
 # endif
 

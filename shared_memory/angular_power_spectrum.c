@@ -117,7 +117,6 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   //   printf("\n");
   // }
   invert_matrix(noise, g_bins);
-  printf("inverse noise: %f %f\n", noise[0], noise[1]);
   multiply_matrices(noise, sum, B, g_bins, g_bins, g_bins);
   invert_matrix(noise, g_bins);
 
@@ -143,7 +142,9 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
   // printf("#-# %.2f percent\n", 100.0*count/(0.5*(g_bins*g_bins-g_bins)));
   // printf("#-#########\n#-#Finished Testing\n#-#########\n");
 
-
+# ifdef APS_OUTPUT_TEST
+  save_raw_double_array(test_root, "preeigen", B, g_bins * g_bins);
+# endif
 
   // Calculate eigenvalues and eigenvectors.
   printf("#Calculating  eigenvalues and eigenvectors.\n");
@@ -165,6 +166,11 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
     total_snr += W[i];
   }
 
+# ifdef APS_OUTPUT_TEST
+  save_raw_double_array(test_root, "eigenvectors", B, g_bins * g_bins);
+  save_raw_double_array(test_root, "eigenvalues", W, g_bins);
+# endif
+
   // Renormalizing so that Bt*N*B = 1.
   for (j=0; j<g_bins; j++) {
     for (i=0; i<g_bins; i++) {
@@ -172,9 +178,6 @@ int KL_compression(double *overdensity, double *signal, double *noise, double *d
     }
   }
 
-# ifdef APS_OUTPUT_TEST
-  save_raw_double_array(test_root, "eigenvectors", B, g_bins * g_bins);
-# endif
 
   matrix_transpose(B, Bt, g_bins, g_bins);
 
