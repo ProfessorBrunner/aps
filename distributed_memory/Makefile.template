@@ -1,27 +1,15 @@
 # Quadratic Estimation of Angular Power Spectrum
 # Parallel implementation
 
-#################
-# To Do: Link MPI and Elemental
-# Makefile from sample Elemental Code:
-# include /usr/local/conf/ElemVars
-#
-# SVD: SVD.cpp
-#	${CXX} ${ELEM_COMPILE_FLAGS} $< -o $@ ${ELEM_LINK_FLAGS} ${ELEM_LIBS}
-#################
-
-
+include /usr/local/conf/ElemVars
 CC=gcc
 CXX=g++
 MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl
 HEALPIXROOT=/usr/local/src/Healpix_3.11/
 
-CFLAGS=-O3 -fopenmp -m64 -I$(MKLROOT)/include -I$(HEALPIXROOT)/include
-LDFLAGS=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_gnu_thread.a -Wl,--end-group
+CFLAGS=-I$(HEALPIXROOT)/include
 LDFLAGS+=-L$(HEALPIXROOT)/lib
-#With /opt/intel/composer_xe_2011_sp1.11.339/mkl these flags worked:
-#LDFLAGS=-Wl,-Bstatic -Wl,--start-group -L$(MKLROOT)/lib/intel64  -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -liomp5 -Wl,--end-group -Wl,-Bdynamic
-LDLIBS=-ldl -lpthread -lm -lchealpix -lcfitsio
+LDLIBS=-ldl -lm -lcfitsio -lchealpix
 
 SOURCES=AngularPowerSpectrum.cc aps.cc OverdensityMap.cc BandPower.cc
 LIBS=AngularPowerSpectrum.h BandPower.h OverdensityMap.h
@@ -29,10 +17,10 @@ LIBS=AngularPowerSpectrum.h BandPower.h OverdensityMap.h
 all: aps
 
 aps:  $(SOURCES) $(LIBS)
-	$(CXX) $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CFLAGS) ${ELEM_COMPILE_FLAGS} $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) ${ELEM_LINK_FLAGS} $(LDLIBS) ${ELEM_LIBS}
 
 aps_test: $(SOURCES) $(LIBS)
-    $(CXX) -DAPS_OUTPUT_TEST $(CFLAGS) ${ELEM_COMPILE_FLAGS} $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) ${ELEM_LINK_FLAGS} $(LDLIBS) ${ELEM_LIBS}
+	$(CXX) -DAPS_OUTPUT_TEST $(CFLAGS) ${ELEM_COMPILE_FLAGS} $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) ${ELEM_LINK_FLAGS} $(LDLIBS) ${ELEM_LIBS}
 
 #Haven't needed to use this
 initialize: .FORCE
@@ -44,6 +32,4 @@ initialize: .FORCE
 .FORCE:
 
 clean: .FORCE
-	rm aps
- 
-
+	rm aps aps_test
