@@ -40,6 +40,21 @@
 
 using namespace elem;
 
+// /// Increase initial C to prevent divergence
+// void FixC(double *buffer, int length){
+//   double avg = 0;
+//   for (int i=0; i < length; ++i){
+//     avg += buffer[i];
+//   }
+//   avg = avg/length;
+//   if (avg/length < 1.0) {
+//     double correction = 10.0/avg;
+//     for (int i=0; i < length; ++i){
+//       buffer[i] *= avg;
+//     }
+//   }
+// }
+
 int main(int argc, char *argv[]) {
   Initialize(  argc, argv  );
   if (argc != 3) {
@@ -101,6 +116,7 @@ int main(int argc, char *argv[]) {
   AngularPowerSpectrum aps(bins, bands, total_galaxies, omega, grid);
 
   if (grid.Rank() == 0) {
+    //FixC(bp->c_, bands);
     memcpy(aps.c_, bp->c_, bands * sizeof *bp->c_);
     memcpy(aps.c_start_, bp->c_start_, bands * sizeof *bp->c_start_);
     memcpy(aps.c_end_, bp->c_end_, bands * sizeof *bp->c_end_);
