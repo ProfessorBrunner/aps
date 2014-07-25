@@ -114,7 +114,7 @@ def write_fits(filename, overdensity_map, header, nest=True, coord='C'):
          'RESERVED': ('maybe', "Check the list of reserved keysworks")}
     """
     hp.write_map(filename, overdensity_map, nest=nest, coord=coord)
-    add_fits_headers(filename, header_dict)
+    add_fits_headers(filename, header)
 
 def main():
     """main method for using as a script"""
