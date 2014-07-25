@@ -22,8 +22,10 @@ distributed_memory: .FORCE
 #################################################################################
 
 TEST_NSIDE=8
-FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
-DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
+# FITS=data/$(TEST_NSIDE)_53918_lcdm.fits
+# DAT=data/CL_$(TEST_NSIDE)_lcdm.bands
+FITS=data/32_1000000_model_4.fits
+DAT=data/CL_32_model_4.dat
 NUM_PROC=1
 
 test_shared: shared_memory/KL_spectrum_output_test $(FITS) $(DAT)

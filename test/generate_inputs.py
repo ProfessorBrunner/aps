@@ -91,6 +91,14 @@ def write_bands(filename, bands):
     """Write bands to file name"""
     np.savetxt(filename, bands, fmt=BAND_FORMAT)
 
+def add_fits_headers(filename, header_dict):
+    """Add fits headers to a fits file from dictionary"""
+    hdulist = pyfits.open(filename, mode='update')
+    prihdr = hdulist[1].header
+    for key, value in header_dict.iteritems():
+        prihdr.set(key, value[0], value[1])
+    hdulist.close()
+
 def write_fits(filename, overdensity_map, header, nest=True, coord='C'):
     """
     Write generated map to a fits file using supplied key:val in header.
@@ -106,11 +114,7 @@ def write_fits(filename, overdensity_map, header, nest=True, coord='C'):
          'RESERVED': ('maybe', "Check the list of reserved keysworks")}
     """
     hp.write_map(filename, overdensity_map, nest=nest, coord=coord)
-    hdulist = pyfits.open(filename, mode='update')
-    prihdr = hdulist[1].header
-    for key, value in header.iteritems():
-        prihdr.set(key, value[0], value[1])
-    hdulist.close()
+    add_fits_headers(filename, header_dict)
 
 def main():
     """main method for using as a script"""
