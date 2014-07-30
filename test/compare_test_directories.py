@@ -18,11 +18,14 @@ from SymLogNorm import SymLogNorm
 import re
 from string import digits
 
+SMALLEST_ERROR = 1e-14
 BINS = 605
 TABLE_HEADERS = ['min', '25%', '50%', '75%', 'max']
 IMPORTANT_FILES = [
+    'signal.dat',
+    'C_iter_[0-9]*'
+    'signal00[0-3]',
     'covariance_model_iter_',
-    #'signal001',
     'kl_signal001',
     #'eigenvalues',
     #'eigenvectors',
@@ -30,21 +33,20 @@ IMPORTANT_FILES = [
     'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
-    'C_iter_[0-9]*'
     ]
 IMPORTANT_REGEX_LIST = [re.compile(x) for x in IMPORTANT_FILES]
 
 GRAPH_FILES = [
-    'signal[0-9]{3}',
-    'kl_signal[0-9]{3}',
-    'kl_noise',
+    # 'signal[0-9]{3}',
+    # 'kl_signal[0-9]{3}',
+    # 'kl_noise',
     # 'kl_overdensity',
     # 'fisher_iter_[0-9]*', 
     # 'window_iter_[0-9]*',
-    #'C_iter_[0-9]*',
-    'covariance_model_iter_[0-9]*',
+    # 'C_iter_[0-9]*',
+    # 'covariance_model_iter_[0-9]*',
     'difference',
-    'preeigen',
+    # 'preeigen',
     ]
 # GRAPH_FILES=[
 #     'kl_noise',
@@ -123,6 +125,7 @@ def get_file_error(expected_file, observed_file, reshape=False):
     #         observed[col,row] = observed[row,col]
 
     error = expected - observed
+    #error = np.where(abs(error) < SMALLEST_ERROR, error, 0)
     relative_error = error / expected
 
     return (expected, observed, error, relative_error)
@@ -236,15 +239,25 @@ def make_error_heatmap(expected_file, observed_file):
             get_file_error(expected_file, observed_file, reshape=True)
     except TypeError:
         return None
-    #fig = plt.figure(figsize=(6,8))
+
+    fig = plt.figure(figsize=(6,8))
+
+    ax = plt.subplot(2, 1, 1)
+    plot_heatmap(error, ax, "Error")
+
+    ax = plt.subplot(2, 1, 2)
+    plot_heatmap(relative_error, ax, "Relative Error")
+    return fig
+
+def make_compare_heatmap(expected_file, observed_file):
+    try:
+        expected, observed, error, relative_error = \
+            get_file_error(expected_file, observed_file, reshape=True)
+    except TypeError:
+        return None
+
     fig = plt.figure(figsize=(12,10))
-
-    # ax = plt.subplot(2, 1, 1)
-    # plot_heatmap(error, ax, "Error")
-    #plot_heatmap(observed, ax, "Observed")
-
     ax = plt.subplot(1, 1, 1)
-    #plot_heatmap(relative_error, ax, "Relative Error")
     plot_heatmap(expected, ax, "Expected")
     return fig
 
@@ -279,9 +292,9 @@ def make_error_boxplot(expected_files, observed_files, names):
     return fig
 
 
-def plot_band_powers(expected_path, observed_path, anafast_file,
+def plot_band_powers(expected_path, observed_path, anafast_file, actual_file,
         output_dir=None):
-    """"""
+    """Plot final bandpower result"""
     expected_files = [f for f in listdir(expected_path) if
             "C_iter_" in f and
             isfile(join(expected_path, f))]
@@ -290,36 +303,41 @@ def plot_band_powers(expected_path, observed_path, anafast_file,
             isfile(join(observed_path, f))]
     available_files = [f for f in expected_files if f in observed_files]
 
-    maximum = int(extract_number(available_files[0]))
-    max_file = available_files[0]
-    for f in available_files:
-        temp = int(extract_number(f))
-        if temp > maximum:
-            maximum = temp
-            max_file = f
+    _, band_center, _, _, anafast, _, _ = \
+        np.loadtxt(anafast_file, dtype=float, unpack=True)
 
-    expected = load_binary_file(join(expected_path, max_file))
-    observed = load_binary_file(join(observed_path, max_file))
-    band_center, anafast = np.loadtxt(anafast_file, dtype=float).T
+    l, cl = np.loadtxt(actual_file, dtype=float, unpack=True)
+    cl = cl*2.*np.pi/(l*1.*(l+1.))
 
-    fig = plt.figure()
-    plt.plot(band_center, anafast, 'bo', label='Anafast', markersize=5)
-    plt.plot(band_center, expected, 'gx', label='Shared', markersize=10)
-    plt.plot(band_center, observed, 'r+', label='Distributed', markersize=10)
-    plt.yscale('log')
-    plt.ylim(10**(-1), 5e2)
-    plt.xlabel(r'$\ell$', fontsize=18)
-    plt.ylabel(r'$C_\ell$', fontsize=18)
-    plt.legend(loc=0, numpoints=1)
-    fig.suptitle("Bandpower Comparison", fontsize=24)
-    if output_dir:
-        fig.savefig("{}/C_anafast_comparison".format(output_dir),
-                    bbox_inches='tight', dpi=180)
-        plt.close(fig)
-    else:
-        fig.show()
-        fig.canvas.start_event_loop_default()
+    for current in available_files:
+        name = format_name(current)
+        expected = np.sqrt(load_binary_file(join(expected_path, current)))
+        observed = np.sqrt(load_binary_file(join(observed_path, current)))
 
+        #this is to compensate for the constant
+        #added for convergence
+        #anafast = anafast/1000
+
+        fig = plt.figure()
+        plt.plot(l, cl, label='True value')
+        plt.plot(band_center, anafast, 'bo', label='Initial', markersize=5)
+        plt.plot(band_center, expected, 'gx', label='Shared', markersize=10)
+        plt.plot(band_center, observed, 'r+', label='Distributed', markersize=10)
+
+        plt.yscale('log')
+        plt.ylim(1e-6, 1e-2)
+        plt.xlim(5, band_center.max())
+        plt.xlabel(r'$\ell$', fontsize=18)
+        plt.ylabel(r'$C_\ell$', fontsize=18)
+        plt.legend(loc=0, numpoints=1)
+        fig.suptitle("Bandpower Comparison {}".format(name), fontsize=24)
+        if output_dir:
+            fig.savefig("{}/C_anafast_comparison_{}".format(output_dir, name),
+                        bbox_inches='tight', dpi=180)
+            plt.close(fig)
+        else:
+            fig.show()
+            fig.canvas.start_event_loop_default()
 
 
 def graph_directories(expected_path, observed_path, graph_type='box',
@@ -337,11 +355,15 @@ def graph_directories(expected_path, observed_path, graph_type='box',
 
     available_files = [f for f in expected_files if f in observed_files]
 
-    if graph_type == 'heat':
+    if graph_type == 'heat' or graph_type == 'raw_heat':
         for f in available_files:
             matrix_name = f.split('.')[0]
             print "Plotting {}".format(matrix_name)
-            fig = make_error_heatmap(
+            if graph_type == 'heat':
+                fig = make_error_heatmap(
+                    join(expected_path, f), join(observed_path, f))
+            elif graph_type == 'raw_heat':
+                fig = make_compare_heatmap(
                     join(expected_path, f), join(observed_path, f))
             if not fig:
                 continue
@@ -485,10 +507,12 @@ def main():
     parser.add_argument("-f", "--file", nargs='+', dest="specific_files",
         help="compare a specific file")
     parser.add_argument("--heat-plot", dest="plot_heat", action="store_true",
-        help="display heatmap of important plots of data")
+        help="display error heatmap of important plots of data")
+    parser.add_argument("--heat-plot-compare", dest="plot_heat_compare",
+        action="store_true", help="display heatmap of important plots of data")
     parser.add_argument("--box-plot", dest="plot_box", action="store_true",
         help="display error boxplot of important data")
-    parser.add_argument("-c","-c-plot", nargs=1, dest="plot_c_file",
+    parser.add_argument("-c","-c-plot", nargs=2, dest="plot_c_file",
         help="Given anafast c values, compare with expected and observed")
     parser.add_argument("-o", "--output", nargs=1, dest="output_dir",
         help="Output directory")
@@ -507,13 +531,16 @@ def main():
     elif args.plot_heat:
         graph_directories(args.standard_dir, args.testable_dir, 
                 output_dir=args.output_dir, graph_type='heat')
+    elif args.plot_heat_compare:
+        graph_directories(args.standard_dir, args.testable_dir, 
+                output_dir=args.output_dir, graph_type='raw_heat')
     elif args.plot_box:
         graph_directories(args.standard_dir, args.testable_dir, 
                 output_dir=args.output_dir, graph_type='box')
     elif args.plot_c_file:
-        args.plot_c_file = args.plot_c_file[0]
+        #args.plot_c_file = args.plot_c_file[0]
         plot_band_powers(args.standard_dir, args.testable_dir,
-            args.plot_c_file, output_dir=args.output_dir)
+            args.plot_c_file[0], args.plot_c_file[1], output_dir=args.output_dir)
     else:
         compare_directories(args.standard_dir, args.testable_dir)
 

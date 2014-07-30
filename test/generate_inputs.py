@@ -82,9 +82,8 @@ def generate_map(t, p, nside, plot=False):
     cl3 = cl3*1000 #Bigger c_l values for convergence
 
     bands = zip(index, ell3, ell_min, ell_max, cl3, cl_err, cl3)
-    expected = zip(ell3, cl3)
 
-    return M, bands, expected
+    return M, bands
 
 BAND_FORMAT = '%d %d %d %d %.6f %.6f %.6f'
 def write_bands(filename, bands):
@@ -153,29 +152,25 @@ def main():
     if args.file_name:
         bands_name = "{}/{}.bands".format(data_dir, args.file_name[0])
         fits_name = "{}/{}.fits".format(data_dir, args.file_name[0])
-        expected_name = "{}/expected_{}.txt".format(data_dir, nside)
 
     if args.catalog_file:
         t, p = load_catalog(args.catalog_file[0])
-        M, bands, expected = generate_map(t, p, nside, plot=args.plot)
+        M, bands = generate_map(t, p, nside, plot=args.plot)
         if not args.file_name:
             bands_name = "{}/CL_{}_lcdm.bands".format(data_dir, nside)
             fits_name = "{}/{}_{}_lcdm.fits".format(data_dir, nside, len(t))
-            expected_name = "{}/expected_{}.txt".format(data_dir, nside)
     else:
         t, p = random_galaxies(args.n_random)
-        M, bands, expected = generate_map(t, p, nside, plot=args.plot)
+        M, bands = generate_map(t, p, nside, plot=args.plot)
         if not args.file_name:
             bands_name = "{}/CL_{}_random.bands".format(data_dir, nside)
             fits_name = "{}/{}_{}_random.fits".format(data_dir, nside, len(t))
-            expected_name = "{}/expected_{}.txt".format(data_dir, nside)
     
     #Write bands
     write_bands(bands_name, bands)
     #Write overdensity map
     fits_keys = {"NGALAXY":(len(t), "Total number of galaxies")}
     write_fits(fits_name, M, fits_keys)
-    np.savetxt(expected_name, expected, fmt="%f %f")
 
 if __name__ == "__main__":
     main()

@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
   }
 # endif
 
+# ifdef APS_KL_COMPRESSION
   // KL-Compress
   tic(&time_function);
   KL_compression(overdensity, signal, noise, data_covariance, C, output_KL, test_root); 
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
   save_raw_double_array(test_root, "kl_noise", noise, g_bins*g_bins);
   save_raw_double_array(test_root, "kl_covariance_data", signal, g_bins*g_bins);
 # endif
-
+# endif
   F = (double *)malloc(g_bands*g_bands*sizeof(double));
   A = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));
   B = (double *)malloc(g_bands*g_bins*g_bins*sizeof(double));

@@ -27,13 +27,19 @@ LDLIBS=-ldl -lpthread -lm -lchealpix -lcfitsio
 SOURCES=KL_spectrum.c tools.c angular_power_spectrum.c math.c
 LIBS=angular_power_spectrum.h
 
+PREPROCESSOR_DEFS=
+ifdef APS_KL_COMPRESSION
+PREPROCESSOR_DEFS+=-DAPS_KL_COMPRESSION
+endif
+
 all: KL_spectrum
 
 KL_spectrum:  $(SOURCES) $(LIBS)
-	$(CC) $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(PREPROCESSOR_DEFS) $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
 
 KL_spectrum_output_test: $(SOURCES) $(LIBS)
-	$(CC) -DAPS_OUTPUT_TEST -DAPS_SUPPRESS_MATRIX_STDOUT $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(PREPROCESSOR_DEFS) -DAPS_OUTPUT_TEST  $(CFLAGS) $(SOURCES) $(LIBS) -o $@ $(LDFLAGS) $(LDLIBS)
+	#-DAPS_SUPPRESS_MATRIX_STDOUT
 
 #Haven't needed to use this
 initialize: .FORCE
@@ -58,4 +64,5 @@ gperf: .FORCE $(FITS) $(DAT)
 .FORCE:
 
 clean: .FORCE
-	rm KL_spectrum
+	-rm KL_spectrum
+	-rm KL_spectrum_output_test 

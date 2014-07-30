@@ -40,20 +40,20 @@
 
 using namespace elem;
 
-// /// Increase initial C to prevent divergence
-// void FixC(double *buffer, int length){
-//   double avg = 0;
-//   for (int i=0; i < length; ++i){
-//     avg += buffer[i];
-//   }
-//   avg = avg/length;
-//   if (avg/length < 1.0) {
-//     double correction = 10.0/avg;
-//     for (int i=0; i < length; ++i){
-//       buffer[i] *= avg;
-//     }
-//   }
-// }
+/// Increase initial C to prevent divergence
+void FixC(double *buffer, int length){
+  double avg = 0;
+  for (int i=0; i < length; ++i){
+    avg += buffer[i];
+  }
+  avg = avg/length;
+  if (avg/length < 1.0) {
+    double correction = 10.0/avg;
+    for (int i=0; i < length; ++i){
+      buffer[i] *= correction;
+    }
+  }
+}
 
 int main(int argc, char *argv[]) {
   Initialize(  argc, argv  );
