@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
     output_root[0] = '.';
     output_root[1] = '\0';
   }
+  char_position = strrchr(name, '.');
+  if (char_position) *char_position = '\0';
 
 
   struct stat st = {0};
@@ -81,20 +83,20 @@ int main(int argc, char *argv[])
   if (stat(test_root, &st) == -1) mkdir(test_root, 0766);
 # endif
 
-  sprintf(filename, "%s/output/KL_%s", output_root, name);
+  sprintf(filename, "%s/output/KL_%s.dat", output_root, name);
   printf("%s\n", filename);
   output_KL = fopen(filename, "w");
   assert(output_KL);
 
-  sprintf(filename, "%s/output/C_%s", output_root, name);
+  sprintf(filename, "%s/output/C_%s.bands", output_root, name);
   output_C = fopen(filename, "w");
   assert(output_C);
 
-  sprintf(filename, "%s/output/Fisher_%s", output_root, name);
+  sprintf(filename, "%s/output/Fisher_%s.dat", output_root, name);
   output_Fisher = fopen(filename, "w");
   assert(output_Fisher);
 
-  sprintf(filename, "%s/output/Window_%s", output_root, name);
+  sprintf(filename, "%s/output/Window_%s.dat", output_root, name);
   output_Window = fopen(filename, "w");
   assert(output_Window);
 

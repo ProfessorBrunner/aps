@@ -465,6 +465,7 @@ void AngularPowerSpectrum::EstimateC() {
   if (is_root_) {
     std::cout << "Calculating Window Matrix and New C" << std::endl;
     Matrix<double> fisher_inv_sqrt;
+    Matrix<double> fisher_inv;
     Matrix<double> Y, Y_inv, W, W_prime, Z, temp_Z, row, result;
     std::vector<double> row_sum(bands_, 0.0);
     //Initialize matrices to zero
@@ -474,8 +475,9 @@ void AngularPowerSpectrum::EstimateC() {
     Zeros(W_prime, bands_, bands_);
 
     //Calculate fisher_inv_sqrt
-    Copy(fisher, fisher_inv_sqrt);
-    SymmetricInverse(LOWER, fisher_inv_sqrt);
+    Copy(fisher, fisher_inv);
+    SymmetricInverse(LOWER, fisher_inv);
+    Copy(fisher_inv, fisher_inv_sqrt);
     SquareRoot(fisher_inv_sqrt);
 
     //Calculate Y_inv
@@ -506,6 +508,22 @@ void AngularPowerSpectrum::EstimateC() {
       Gemm(NORMAL, NORMAL, 1.0, row, average, 0.0, result);
       c_[i] = 0.5 * result.Get(0,0);
     }
+
+    //Save bands into output file
+    FILE* band_file;
+    std::string band_file_name = output_directory_ + std::string("/C_") + 
+        input_name_ + std::string(".bands");
+    if (iteration_ == 1) {
+      band_file = fopen(band_file_name.c_str(), "w");
+    }else{
+      band_file = fopen(band_file_name.c_str(), "a");
+    }
+    for (int i = 0; i < bands_; ++i) {
+      fprintf(band_file, "%d %d %d %d %lf %lf %lf\n",
+          i, (c_end_[i]+c_start_[i])/2, c_start_[i], c_end_[i],
+          c_[i], sqrt(fisher_inv.Get(i,i)), c_[i]);
+    }
+    fclose(band_file);
 
     //Save local matrices
 # ifdef APS_OUTPUT_TEST

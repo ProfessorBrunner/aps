@@ -101,6 +101,8 @@ class AngularPowerSpectrum {
   std::string output_directory_;
   ///  Test directory for writing
   std::string test_directory_;
+  ///  Output files are matched to input file name
+  std::string input_name_;
   ///  Current iteration of C estimation
   int iteration_;
 

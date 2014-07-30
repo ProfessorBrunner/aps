@@ -37,16 +37,16 @@ IMPORTANT_FILES = [
 IMPORTANT_REGEX_LIST = [re.compile(x) for x in IMPORTANT_FILES]
 
 GRAPH_FILES = [
-    # 'signal[0-9]{3}',
-    # 'kl_signal[0-9]{3}',
-    # 'kl_noise',
-    # 'kl_overdensity',
-    # 'fisher_iter_[0-9]*', 
-    # 'window_iter_[0-9]*',
-    # 'C_iter_[0-9]*',
-    # 'covariance_model_iter_[0-9]*',
+    'signal[0-9]{3}',
+    'kl_signal[0-9]{3}',
+    'kl_noise',
+    'kl_overdensity',
+    'fisher_iter_[0-9]*', 
+    'window_iter_[0-9]*',
+    'C_iter_[0-9]*',
+    'covariance_model_iter_[0-9]*',
     'difference',
-    # 'preeigen',
+    'preeigen',
     ]
 # GRAPH_FILES=[
 #     'kl_noise',

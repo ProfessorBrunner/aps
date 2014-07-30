@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 
   int bands, bins;
   double total_galaxies, omega;
-  std::string output_directory, test_name, test_directory;
+  std::string output_directory, test_name, test_directory, input_name;
 
   OverdensityMap *mp;
   BandPower *bp;
@@ -86,18 +86,19 @@ int main(int argc, char *argv[]) {
     omega = mp->omega_;
 
     //Determine output file directories
-    output_directory =std::string(argv[2]);
+    output_directory = std::string(argv[2]);
     int char_position = output_directory.find_last_of('/');
-    test_name = output_directory.substr(char_position+1);
+    input_name = output_directory.substr(char_position+1);
 
     output_directory = output_directory.substr(0, char_position);
     
-    char_position = test_name.find_last_of('.');
-    test_name = test_name.substr(0, char_position);
+    char_position = input_name.find_last_of('.');
+    input_name = input_name.substr(0, char_position);
     test_directory = output_directory + "/" + std::string("test_distributed_") +
-        test_name + "/";
+        input_name + "/";
 
-    output_directory = output_directory + "/output";
+    output_directory = output_directory + "/output_distributed";
+    mkdir(output_directory.c_str(), 0766);
 
 
     std::cout << "Data output directory: " << output_directory << std::endl;
@@ -127,6 +128,7 @@ int main(int argc, char *argv[]) {
 
     aps.output_directory_ = output_directory;
     aps.test_directory_ = test_directory;
+    aps.input_name_ = input_name;
   }
 
   //Distribute arrays to all the children
