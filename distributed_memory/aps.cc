@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
 
   //set algorithmic blocksize (default 128): SetBlocksize( int blocksize );
   Grid grid( mpi::COMM_WORLD );
+  //std::cout << "Rank " << grid.Rank() << std::endl;
 
   if (grid.Rank() == 0) {
     mp = new OverdensityMap();

@@ -23,24 +23,27 @@ BINS = 605
 TABLE_HEADERS = ['min', '25%', '50%', '75%', 'max']
 IMPORTANT_FILES = [
     'signal.dat',
-    'C_iter_[0-9]*'
-    'signal00[0-3]',
+    'C_iter_[0-9]*',
+    'difference',
+    'average',
+    # 'signal00[0-3]',
     'covariance_model_iter_',
     'kl_signal001',
-    #'eigenvalues',
-    #'eigenvectors',
-    'kl_noise',
-    'kl_overdensity',
+    # 'eigenvalues',
+    # 'eigenvectors',
+    # 'kl_noise',
+    # 'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
     ]
 IMPORTANT_REGEX_LIST = [re.compile(x) for x in IMPORTANT_FILES]
 
 GRAPH_FILES = [
-    'signal[0-9]{3}',
+    # 'signal[0-9]{3}',
     'kl_signal[0-9]{3}',
-    'kl_noise',
-    'kl_overdensity',
+    'average',
+    # 'kl_noise',
+    # 'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
     'C_iter_[0-9]*',
@@ -305,14 +308,16 @@ def plot_band_powers(expected_path, observed_path, anafast_file, actual_file,
 
     _, band_center, _, _, anafast, _, _ = \
         np.loadtxt(anafast_file, dtype=float, unpack=True)
+    anafast = np.sqrt(4*anafast)
 
     l, cl = np.loadtxt(actual_file, dtype=float, unpack=True)
-    cl = cl*2.*np.pi/(l*1.*(l+1.))
+    #cl = cl*2.*np.pi/(l*1.*(l+1.))
+    cl = np.sqrt(cl)
 
     for current in available_files:
         name = format_name(current)
-        expected = np.sqrt(load_binary_file(join(expected_path, current)))
-        observed = np.sqrt(load_binary_file(join(observed_path, current)))
+        expected = np.sqrt(4*load_binary_file(join(expected_path, current)))
+        observed = np.sqrt(4*load_binary_file(join(observed_path, current)))
 
         #this is to compensate for the constant
         #added for convergence
@@ -325,7 +330,7 @@ def plot_band_powers(expected_path, observed_path, anafast_file, actual_file,
         plt.plot(band_center, observed, 'r+', label='Distributed', markersize=10)
 
         plt.yscale('log')
-        plt.ylim(1e-6, 1e-2)
+        plt.ylim(1e-3, 1e-0)
         plt.xlim(5, band_center.max())
         plt.xlabel(r'$\ell$', fontsize=18)
         plt.ylabel(r'$C_\ell$', fontsize=18)

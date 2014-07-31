@@ -98,11 +98,11 @@ void AngularPowerSpectrum::run() {
   
   CreateOverdensity();
 
-  if (is_root_) {
-    Matrix<double> c_matrix;
-    c_matrix.Attach(bands_, 1, c_, bands_);
-    Print(c_matrix, "Original C");
-  }
+  // if (is_root_) {
+  //   Matrix<double> c_matrix;
+  //   c_matrix.Attach(bands_, 1, c_, bands_);
+  //   Print(c_matrix, "Original C");
+  // }
 
   /*CALCULATE SIGNAL*/
   Barrier();
@@ -187,7 +187,7 @@ void AngularPowerSpectrum::run() {
 
 
   Barrier();
-  total_timer.Stop();
+  elapsed = total_timer.Stop();
   if (is_root_) std::cout << "Total run time " << elapsed << std::endl;
 }
 
@@ -431,6 +431,7 @@ void AngularPowerSpectrum::EstimateC() {
     Axpy(1.0, noise_, sum_);
   }
 
+  //use a different name to make clear that the matrix is different
   DistMatrix<double>& covariance_inv = sum_;
   SymmetricInverse(LOWER, covariance_inv);
 
