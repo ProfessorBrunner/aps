@@ -39,7 +39,7 @@
 #include "elemental-lite.hpp"
 #include ELEM_IDENTITY_INC
 #include ELEM_DOT_INC
-#include ELEM_SQUAREROOT_INC
+//#include ELEM_SQUAREROOT_INC //Currently a bug
 #include ELEM_AXPY_INC
 #include ELEM_HEMM_INC
 #include ELEM_ONES_INC
@@ -48,7 +48,9 @@
 #include ELEM_COPY_INC
 #include ELEM_GEMV_INC
 #include ELEM_SYMMETRICINVERSE_INC
+#include ELEM_INVERSE_INC
 #include ELEM_TRACE_INC
+#include ELEM_SCALE_INC
 
 #include "chealpix.h"
 #include "fitsio.h"
@@ -86,7 +88,13 @@ AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
 
 void AngularPowerSpectrum::run() {
-  if (is_root_) std::cout << "Running AngularPowerSpectrum" << std::endl;
+  if (is_root_){
+    std::cout << "Running AngularPowerSpectrum" << std::endl;
+    std::cout << "omega/total_galaxies : " << inverse_density_ << std::endl;
+    std::cout << "Nodes                : " << grid_->Size() << std::endl;
+    std::cout << "Grid height          : " << grid_height_ << std::endl;
+    std::cout << "Grid Width           : " << grid_width_ << std::endl;
+  }
 
   //Set Up Timers
   double elapsed;
@@ -297,6 +305,10 @@ void AngularPowerSpectrum::KLCompression() {
   //math.stackexchange.com/questions/840855/inverse-of-constant-matrix-plus-diagonal-matrix
   p = - kLargeNumber / ( inverse_density_ * (bins_ * kLargeNumber + inverse_density_) );
   q = 1.0 / inverse_density_;
+  std::cout << "Inverse Noise: " << std::endl;
+  std::cout << "p: " << p << std::endl;
+  std::cout << "q: " << q << std::endl;
+
 
   //Storing Inverse Noise * Sum into temp_eig
   Symm(RIGHT, UPPER, p, sum_, P, q, temp_eig);
@@ -381,7 +393,7 @@ void AngularPowerSpectrum::CalculateDifference() {
   for(int i = 0; i < bins_; ++i) {
     sum += all_overdensity.Get(i, 0);
   }
-  std::cout << "Overdensity sum: " << sum << std::endl;
+  if (is_root_) std::cout << "Overdensity sum: " << sum << std::endl;
 
   //Difference = overdensity * overdensity transpose - Noise
   if (!is_compressed_) {
@@ -431,9 +443,11 @@ void AngularPowerSpectrum::EstimateC() {
     Axpy(1.0, noise_, sum_);
   }
 
+
   //use a different name to make clear that the matrix is different
   DistMatrix<double>& covariance_inv = sum_;
   SymmetricInverse(LOWER, covariance_inv);
+  // Read(sum_, "data/test_shared_CL_32_model_4/covariance_model_iter_1.dat", BINARY_FLAT);
 
   /* Fisher Matrix Calculation */
   if (is_root_) std::cout << "Calculating Fisher Matrix" << std::endl;
@@ -468,32 +482,44 @@ void AngularPowerSpectrum::EstimateC() {
     Matrix<double> fisher_inv_sqrt;
     Matrix<double> fisher_inv;
     Matrix<double> Y, Y_inv, W, W_prime, Z, temp_Z, row, result;
-    std::vector<double> row_sum(bands_, 0.0);
     //Initialize matrices to zero
     Zeros(Y, bands_, bands_);
     Zeros(Z, bands_, bands_);
     Zeros(temp_Z, bands_, bands_);
     Zeros(W_prime, bands_, bands_);
+    Zeros(fisher_inv_sqrt, bands_, bands_);
+
 
     //Calculate fisher_inv_sqrt
     Copy(fisher, fisher_inv);
     SymmetricInverse(LOWER, fisher_inv);
+
+    // Read(fisher_inv, "data/test_shared_CL_32_model_4/inv_fisher_iter_1.dat", BINARY_FLAT);
+
     Copy(fisher_inv, fisher_inv_sqrt);
-    SquareRoot(fisher_inv_sqrt);
+    SquareRoot(fisher_inv_sqrt); //Elemental version has bug
+
+
+    // Matrix<double> test;
+    // Zeros(test, bands_, bands_);
+    // Gemm(NORMAL, NORMAL, 1.0, fisher_inv_sqrt, fisher_inv_sqrt, 0.0, test);
+    // Gemm(NORMAL, NORMAL, 1.0, test, fisher, 0.0 test);
+    // Print(test, "Test Fisher sqrt back to inverse");
 
     //Calculate Y_inv
     Gemm(NORMAL, NORMAL, 1.0, fisher_inv_sqrt, fisher, 0.0, Y);
     Copy(Y, Y_inv);
-    SymmetricInverse(LOWER, Y_inv);
+    Inverse(Y_inv);
 
     //Calculate W
     Copy(Y, W);
-    for (int j = 0; j < bands_; ++j) {
-      for (int i = 0; i < bands_; ++i) {
-        row_sum[j] += W.Get(i,j);
+    for (int i = 0; i < bands_; ++i) {
+      double sum = 0.0;
+      for (int j = 0; j < bands_; ++j) {
+        sum += W.Get(i,j);
       }
-      for (int i = 0; i < bands_; ++i) {
-        W.Set(i, j, W.Get(i,j) / row_sum[j]);
+      for (int j = 0; j < bands_; ++j) {
+        W.Set(i, j, W.Get(i,j) / sum);
       }
     }
     
@@ -528,12 +554,16 @@ void AngularPowerSpectrum::EstimateC() {
 
     //Save local matrices
 # ifdef APS_OUTPUT_TEST
-    SaveMatrix("fisher"+std::string("_iter_")+std::to_string(iteration_), fisher);
-    SaveMatrix("average"+std::string("_iter_")+std::to_string(iteration_), average);
-    SaveMatrix("window"+std::string("_iter_")+std::to_string(iteration_), W_prime);
+    SaveMatrix(std::string("inv_sqrt_fisher_iter_")+std::to_string(iteration_), fisher_inv_sqrt);
+    SaveMatrix(std::string("inv_fisher_iter_")+std::to_string(iteration_), fisher_inv);
+    SaveMatrix(std::string("fisher_iter_")+std::to_string(iteration_), fisher);
+    SaveMatrix(std::string("average_iter_")+std::to_string(iteration_), average);
+    SaveMatrix(std::string("window_iter_")+std::to_string(iteration_), W_prime);
+    SaveMatrix(std::string("pre_window_iter_")+std::to_string(iteration_), W);
+    SaveMatrix(std::string("Y_iter_")+std::to_string(iteration_), Y_inv);
     Matrix<double> c_matrix;
     c_matrix.Attach(bands_, 1, c_, bands_);
-    SaveMatrix("C"+std::string("_iter_")+std::to_string(iteration_), c_matrix);
+    SaveMatrix(std::string("C_iter_")+std::to_string(iteration_), c_matrix);
 # endif
   }
   mpi::Broadcast(c_, bands_, 0, grid_->Comm());
@@ -609,4 +639,20 @@ double AngularPowerSpectrum::TraceMultiply(DistMatrix<double> &m1, DistMatrix<do
   }
 
   return sum;
+}
+
+
+void AngularPowerSpectrum::SquareRoot(Matrix<double> &m) {
+  Matrix<double> eigen_vectors, eigen_values, temp, sqrt_diagonal;
+
+  Copy(m, temp);
+  HermitianEig(UPPER, temp, eigen_values, eigen_vectors, ASCENDING);
+
+  int n = eigen_values.Height();
+  std::vector<double> diagonal(n);
+  for (int i = 0; i < n; ++i) diagonal[i] = sqrt(eigen_values.Get(i,0));
+  Diagonal(sqrt_diagonal, diagonal);
+
+  Gemm(NORMAL, NORMAL, 1.0, eigen_vectors, sqrt_diagonal, 0.0, temp);
+  Gemm(NORMAL, TRANSPOSE, 1.0, temp, eigen_vectors, 0.0, m);
 }

@@ -197,6 +197,11 @@ class AngularPowerSpectrum {
    */
   double TraceMultiply(DistMatrix<double> &m1, DistMatrix<double> &m2);
 
+  /*
+   * In place matrix square root of symmetric matrix.
+   */
+  void SquareRoot(Matrix<double> &m);
+
   /// Local barrier method
   inline void Barrier(){
     mpi::Barrier(grid_->Comm());

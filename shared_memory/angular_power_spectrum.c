@@ -457,33 +457,49 @@ int print_Fisher(double *F, int iteration, FILE *output_Fisher)
 int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE *output_Window, char* test_root, int iteration)
 {
   int l, l_prime, hold;
-  double sum, *invsqrtF, *A, *B, *D, *W;
+  double sum, *invsqrtF, *Y, *Z, *D, *W;
+  //F is inverted before this function
 
   invsqrtF = (double *)malloc(g_bands*g_bands*sizeof(double));
-  A = (double *)malloc(g_bands*g_bands*sizeof(double));
-  B = (double *)malloc(g_bands*g_bands*sizeof(double));
+  Y = (double *)malloc(g_bands*g_bands*sizeof(double));
+  Z = (double *)malloc(g_bands*g_bands*sizeof(double));
   D = (double *)malloc(g_bands*g_bands*sizeof(double));
   W = (double *)malloc(g_bands*g_bands*sizeof(double));
 
   matrix_square_root(F, invsqrtF, g_bands);
-  invert_matrix(F, g_bands);
-  multiply_matrices(invsqrtF, F, A, g_bands, g_bands, g_bands); // A = F^1/2
+# ifdef APS_OUTPUT_TEST
+  char filename[kMaxChars];
+  sprintf(filename, "inv_fisher_iter_%d", iteration);
+  save_raw_double_array(test_root, filename, F, g_bands*g_bands);
+# endif
+  invert_matrix(F, g_bands); //reinvert F
+  multiply_matrices(invsqrtF, F, Y, g_bands, g_bands, g_bands); // Y = F^-1/2 * F
 
   for (l_prime=0; l_prime<g_bands; l_prime++) {
     sum = 0.0;
     for (l=0; l<g_bands; l++) {
-      sum += A[l_prime+l*g_bands];
+      sum += Y[l_prime+l*g_bands];
     }
     for (l=0; l<g_bands; l++) {
-      W[l_prime+l*g_bands] = A[l_prime+l*g_bands]/sum;
+      W[l_prime+l*g_bands] = Y[l_prime+l*g_bands]/sum;
     }  
   }
 
-  invert_matrix(A, g_bands);
-  multiply_matrices(W, A, D, g_bands, g_bands, g_bands); // D = WF^-1/2
-  invert_matrix(A, g_bands);
-  multiply_matrices(D, invsqrtF, B, g_bands, g_bands, g_bands);
-  multiply_matrices(B, F, W, g_bands, g_bands, g_bands);
+  
+  invert_matrix(Y, g_bands);
+# ifdef APS_OUTPUT_TEST
+  sprintf(filename, "inv_sqrt_fisher_iter_%d", iteration);
+  save_raw_double_array(test_root, filename, invsqrtF, g_bands*g_bands);
+  sprintf(filename, "pre_window_iter_%d", iteration);
+  save_raw_double_array(test_root, filename, W, g_bands*g_bands);
+  sprintf(filename, "Y_iter_%d", iteration);
+  save_raw_double_array(test_root, filename, Y, g_bands*g_bands);
+# endif
+
+  multiply_matrices(W, Y, D, g_bands, g_bands, g_bands); // D = WF^-1/2
+  //invert_matrix(Y, g_bands);
+  multiply_matrices(D, invsqrtF, Z, g_bands, g_bands, g_bands);
+  multiply_matrices(Z, F, W, g_bands, g_bands, g_bands);
   invert_matrix(F, g_bands);
 
   printf("#Printing out Window matrix.\n");  
@@ -498,7 +514,7 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
     fprintf(output_Window, "\n");
   }
 # ifdef APS_OUTPUT_TEST
-  char filename[kMaxChars];
+  //char filename[kMaxChars];
   sprintf(filename, "window_iter_%d", iteration);
   save_raw_double_array(test_root, filename, W, g_bands*g_bands);
 # endif
@@ -507,7 +523,7 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   for (l=0; l<g_bands; l++) {
     C_change[l] = 0.0;
     for (l_prime = 0; l_prime<g_bands; l_prime++) {
-      C_change[l] += 0.5*B[l+l_prime*g_bands]*average[l_prime];
+      C_change[l] += 0.5*Z[l+l_prime*g_bands]*average[l_prime];
     }
     if (fabs(C_change[l]) > fabs(sqrt(F[l+l*g_bands]))) hold += 1;
     C[l] = C_change[l];

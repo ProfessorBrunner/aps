@@ -22,17 +22,19 @@ SMALLEST_ERROR = 1e-14
 BINS = 605
 TABLE_HEADERS = ['min', '25%', '50%', '75%', 'max']
 IMPORTANT_FILES = [
-    'signal.dat',
+    # 'signal.dat',
     'C_iter_[0-9]*',
+    'pre_window',
+    'Y',
     'difference',
     'average',
-    # 'signal00[0-3]',
-    'covariance_model_iter_',
-    'kl_signal001',
-    # 'eigenvalues',
-    # 'eigenvectors',
-    # 'kl_noise',
-    # 'kl_overdensity',
+    # # 'signal00[0-3]',
+    # 'covariance_model_iter_',
+    # 'kl_signal001',
+    # # 'eigenvalues',
+    # # 'eigenvectors',
+    # # 'kl_noise',
+    # # 'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
     ]
@@ -40,6 +42,10 @@ IMPORTANT_REGEX_LIST = [re.compile(x) for x in IMPORTANT_FILES]
 
 GRAPH_FILES = [
     # 'signal[0-9]{3}',
+    'inv_sqrt_fisher',
+    'inv_fisher',
+    'pre_window',
+    'Y',
     'kl_signal[0-9]{3}',
     'average',
     # 'kl_noise',
@@ -260,8 +266,10 @@ def make_compare_heatmap(expected_file, observed_file):
         return None
 
     fig = plt.figure(figsize=(12,10))
-    ax = plt.subplot(1, 1, 1)
+    ax = plt.subplot(2, 1, 1)
     plot_heatmap(expected, ax, "Expected")
+    ax = plt.subplot(2, 1, 2)
+    plot_heatmap(observed, ax, "Observed")
     return fig
 
 def make_error_boxplot(expected_files, observed_files, names):
