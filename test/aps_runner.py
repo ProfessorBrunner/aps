@@ -37,6 +37,8 @@ class aps_run:
                 string += str(key) + str(val)
         self.hash_id = sha224(string).hexdigest()[0:10]
         return self.hash_id
+    def __repr__(self):
+        return self.name
 
 
 def cross_runs(runs, key, values):
@@ -80,7 +82,7 @@ STANDARD_WEB_ORIG = {
     'run':1,
     'time':"00:08:00",
     'memory':"m24G",
-    'cluster':"Taub",
+    'cluster':"taub",
     'kl':False,
     'noise_model':'standard',
     'cross_correlation':False,
