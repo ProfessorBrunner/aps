@@ -5,10 +5,13 @@ Create run scripts for performance and verification.
 
 from copy import deepcopy
 from hashlib import sha224
+import cPickle as pickle
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
 APS_DIR="/home/amwarren/aps"
-OUTPUT_DIR="data/output_distributed"
+#APS_DIR="/home/alex/pop_uiuc/aps"
+DATA_DIR="{}/data".format(APS_DIR)
+OUTPUT_DIR="{}/output_distributed".format(DATA_DIR)
 
 class aps_run:
     def __init__(self, kwargs):
@@ -66,28 +69,32 @@ def create_pbs(run):
     script.append("#PBS -j oe")
     script.append("#PBS -o {}/out_{}".format(OUTPUT_DIR, run.name))
     script.append("cd {}".format(APS_DIR))
-    script.append("mpiexec ./distributed_memory/aps {} {} {}".format(
-            run.fits_file, run.bands_file, run.name))
+    script.append("mkdir -p {}".format(OUTPUT_DIR))
+    script.append("mpiexec ./distributed_memory/aps {}/{} {}/{} {}".format(
+            DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name))
     return '\n'.join(script)
 
+def create_batch_name(runs, prefix='batch'):
+    names = [run.name for run in runs]
+    unique = sha224(''.join(names)).hexdigest()[0:20]
+    return "{}_{}".format(prefix, unique)
 
 
-
-STANDARD_WEB_ORIG = {
+NUM_CORE_COMPARE = {
     'nodes':1,
     'threads':12,
     'nside':32,
     'pixels':1024,
     'bands':40,
     'run':1,
-    'time':"00:08:00",
-    'memory':"m24G",
+    'time':"00:10:00",
+    'memory':"m12G",
     'cluster':"taub",
     'kl':False,
     'noise_model':'standard',
     'cross_correlation':False,
-    'fits_file':"data/32_1000000_model_4.fits",
-    'bands_file':"data/CL_32_model_4.bands",
+    'fits_file':"32_1000000_model_4.fits",
+    'bands_file':"CL_32_model_4.bands",
     'name':"x",
 }
 
@@ -100,13 +107,13 @@ STANDARD_ = {
     'kl':False,
     'noise_model':'standard',
     'cross_correlation':False,
-    'fits_file':"data/32_1000000_model_4.fits",
-    'bands_file':"data/CL_32_model_4.bands",
+    'fits_file':"32_1000000_model_4.fits",
+    'bands_file':"CL_32_model_4.bands",
     'name':"x",
 }
 
 
-runs = [aps_run(STANDARD_WEB_ORIG)]
+runs = [aps_run(NUM_CORE_COMPARE)]
 runs = cross_runs(runs, 'nodes', [1,2,3])
 runs = cross_runs(runs, 'threads', [6,12])
 runs = cross_runs(runs, 'repeat', [1,2,3])
@@ -119,3 +126,7 @@ for run in runs:
 
     submit_script.write("qsub {}.pbs\n".format(run.name))
     pbs_file.write(create_pbs(run))
+
+batch_name = create_batch_name(runs, "32_node_compare")
+pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
+pickle.dump(runs, pickle_file)
