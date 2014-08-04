@@ -34,7 +34,7 @@
 #include <vector>
 #include <stdlib.h>
 
-  #include "OverdensityMap.h"
+#include "OverdensityMap.h"
 
 #include "elemental-lite.hpp"
 
@@ -92,11 +92,11 @@ class AngularPowerSpectrum {
   ///  The local width of a DistMatrix
   Int local_width_;
   ///  The local slice of the signal matrix in a vector of vectors.
-  std::vector<std::vector<double>> local_signal;
+  std::vector<std::vector<double>> local_signal_;
   ///  The local slice of the sum matrix.
-  std::vector<double> local_sum;
+  std::vector<double> local_sum_;
   ///  The local slice of the difference matrix.
-  std::vector<double> local_difference;
+  std::vector<double> local_difference_;
   ///  Output directory for writing
   std::string output_directory_;
   ///  Test directory for writing
@@ -132,6 +132,11 @@ class AngularPowerSpectrum {
    * Creates a Distributed Matrix of doubles and builds the Overdensity Matrix
    */
   void CreateOverdensity();
+
+  /**
+   * Creates Noise Matrix from explicit formula
+   */
+  void CreateNoise();
 
   /**
    * Build Signal and Sum Matrices
@@ -176,6 +181,11 @@ class AngularPowerSpectrum {
    * Prints the given vector
    */
   void PrintRawArray(std::vector<double> v, int length, int height);
+
+  /**
+   * Prints memory stats from malloc
+   */
+  void PrintMemory(std::string location);
 
   /*
    * Saves the DistMatrix with the given file name using Elemental's Write function

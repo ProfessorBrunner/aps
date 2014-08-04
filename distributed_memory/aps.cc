@@ -27,10 +27,9 @@
 //#define APS_DEBUG
 
 #include <stdlib.h>
-#ifdef APS_OUTPUT_TEST
 #include <sys/stat.h>
-#endif
 #include <iostream>
+
 
 #include "elemental-lite.hpp"
 

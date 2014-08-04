@@ -29,7 +29,7 @@ IMPORTANT_FILES = [
     'difference',
     'average',
     # # 'signal00[0-3]',
-    # 'covariance_model_iter_',
+    'covariance_model_iter_',
     # 'kl_signal001',
     # # 'eigenvalues',
     # # 'eigenvectors',

@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#include <malloc.h>
 
 #include <vector>
 #include <iostream>
@@ -86,7 +87,6 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
 
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
 
-
 void AngularPowerSpectrum::run() {
   if (is_root_){
     std::cout << "Running AngularPowerSpectrum" << std::endl;
@@ -120,14 +120,15 @@ void AngularPowerSpectrum::run() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "Signal calculated in " << elapsed << std::endl;
+  PrintMemory("CalculateSignal-end");
+  if (is_root_) std::cout << "TIME: CalculateSignal[] " << elapsed << std::endl;
 
   //Save Signal Matrix to File
 # ifdef APS_OUTPUT_TEST
   for (int k = 0; k < bands_; ++k){
     //Save matrix to file
     //TODO(Alex): This could be done with sstream and fails
-    //            with more than 999 bands
+    //            with more than 999 bands (not a big deal now)
     std::string file_name("signal");
     if (k<100) file_name += "0";
     if (k<10) file_name += "0";
@@ -136,8 +137,10 @@ void AngularPowerSpectrum::run() {
   }
 # endif
 
+
 # ifdef APS_KL_COMPRESSION
   /*KL-COMPRESSION*/
+  PrintMemory("KLCompression-before");
   Barrier();
   timer.Start();
 
@@ -145,7 +148,8 @@ void AngularPowerSpectrum::run() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "KL compression in " << elapsed << std::endl;
+  PrintMemory("KLCompression-after");
+  if (is_root_) std::cout << "TIME: KLCompression[] " << elapsed << std::endl;
 
 # ifdef APS_OUTPUT_TEST
   for (int k = 0; k < bands_; ++k){
@@ -161,6 +165,16 @@ void AngularPowerSpectrum::run() {
 # endif
 # endif
 
+# ifndef APS_KL_COMPRESSION
+  /*CREATE NOISE*/
+  Barrier();
+  timer.Start();
+  CreateNoise();
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: CreateNoise[] " << elapsed << std::endl;
+# endif
+
   /*CALCULATE DIFFERENCE*/
   Barrier();
   timer.Start();
@@ -169,7 +183,7 @@ void AngularPowerSpectrum::run() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "Calculate Difference in " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: CalculateDifference[] " << elapsed << std::endl;
 
   //Save Difference Matrix to File
 # ifdef APS_OUTPUT_TEST
@@ -178,7 +192,11 @@ void AngularPowerSpectrum::run() {
 
 
   /*ITERATIVE ESTIMATION*/
+  timer.Start();
+  if (is_root_) std::cout << "Iterative Estimation";
   for (iteration_ = 1; iteration_ <= 3; ++iteration_) {
+    if (is_root_) std::cout << "Iteration " << iteration_ << std::endl;
+    PrintMemory("Iteration-" + std::to_string(iteration_));
     Barrier();
     iteration_timer.Start();
 
@@ -186,17 +204,15 @@ void AngularPowerSpectrum::run() {
 
     Barrier();
     elapsed = iteration_timer.Stop();
-    if (is_root_) std::cout << "Iteration " << iteration_ << " time: "<< elapsed << std::endl;
+    if (is_root_) std::cout << "TIME: EstimateC[iter=" << iteration_ << "] " 
+        << elapsed << std::endl;
   }
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "Total iteration time " << elapsed << std::endl;
-
-
-  Barrier();
+  if (is_root_) std::cout << "TIME: TotalIterations[] " << elapsed << std::endl;
   elapsed = total_timer.Stop();
-  if (is_root_) std::cout << "Total run time " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: Total[] " << elapsed << std::endl;
 }
 
 
@@ -204,12 +220,14 @@ void AngularPowerSpectrum::run() {
 
 
 void AngularPowerSpectrum::CreateOverdensity() {
-  DistMatrix<double, CIRC, CIRC> temp_ovden(*grid_);
-  temp_ovden.Attach(bins_, 1, *grid_, 0, 0, local_overdensity_, bins_);
-  overdensity_ = temp_ovden;
+  if (is_root_) std::cout << "Creating Overdensity" << std::endl;
+  DistMatrix<double, CIRC, CIRC> temp_overdensity(*grid_);
+  temp_overdensity.Attach(bins_, 1, *grid_, 0, 0, local_overdensity_, bins_);
+  overdensity_ = temp_overdensity;
 }
 
 void AngularPowerSpectrum::CalculateSignal() {
+  if (is_root_) std::cout << "Calculating Signal Matrix" << std::endl;
   //Initialize Signal and Sum matrices
   signal_ = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   sum_ = DistMatrix<double>(*grid_);
@@ -225,9 +243,10 @@ void AngularPowerSpectrum::CalculateSignal() {
           // Form global row index from local row index
           const Int i = grid_row_ + iLoc*grid_height_;
           // If diagonal entry, set to one, otherwise zero
-          cos_values[iLoc + jLoc * local_height_] = sin(dec_[i] * kDegreeToRadian) *
-              sin(dec_[j] * kDegreeToRadian) + cos(dec_[i] * kDegreeToRadian) *
-              cos(dec_[j] * kDegreeToRadian) * cos((ra_[i] - ra_[j]) * kDegreeToRadian);
+          cos_values[iLoc + jLoc * local_height_] = 
+              sin(dec_[i] * kDegreeToRadian) * sin(dec_[j] * kDegreeToRadian)
+              + cos(dec_[i] * kDegreeToRadian) *  cos(dec_[j] * kDegreeToRadian)
+              * cos((ra_[i] - ra_[j]) * kDegreeToRadian);
       }
   }
 
@@ -235,8 +254,8 @@ void AngularPowerSpectrum::CalculateSignal() {
   std::vector<double> previous_previous(local_height_ * local_width_, 1.0f);
   std::vector<double> previous = cos_values;
   std::vector<double> current; 
-  local_signal = std::vector<std::vector<double>>(bands_, std::vector<double> (local_height_ * local_width_, 0.0f));
-  local_sum = std::vector<double>(local_height_ * local_width_, 0.0f);
+  local_signal_ = std::vector<std::vector<double>>(bands_, std::vector<double> (local_height_ * local_width_, 0.0f));
+  local_sum_ = std::vector<double>(local_height_ * local_width_, 0.0f);
 
   /*** Begin Legendre Calculation ***/
   int k = 0;
@@ -245,7 +264,7 @@ void AngularPowerSpectrum::CalculateSignal() {
     if (ell == 1){
       current = cos_values;
       VectorTimesScalar(current, coefficient);
-      if (ell >= c_start_[k]) VectorPlusEqualsVector(local_signal[k], current);
+      if (ell >= c_start_[k]) VectorPlusEqualsVector(local_signal_[k], current);
       continue;
     }
     //current = current * cos_values * previous + (previous_previous * (1-ell/ell))
@@ -260,42 +279,50 @@ void AngularPowerSpectrum::CalculateSignal() {
 
     if (ell < c_start_[k]) continue;
 
-    //Set local_signal to current
+    //Set local_signal_ to current
     VectorTimesScalar(current, coefficient);
-    VectorPlusEqualsVector(local_signal[k], current);
+    VectorPlusEqualsVector(local_signal_[k], current);
 
     if (ell == c_end_[k]){
-      //Attach local_signal data to the distributed signal matrix
+      //Attach local_signal_ data to the distributed signal matrix
       if (is_root_) {
         std::cout << "Attaching band " << k << " modes: " << c_start_[k] <<
             " to " << c_end_[k] << std::endl;
       }
-      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal[k].data(), 
+      signal_[k].Attach(bins_, bins_, *grid_, 0, 0, local_signal_[k].data(), 
           local_height_ );
 
       //Sum matrix calculation: current used as a temporary vector 
-      //with local_signal's data; get's reset at the top of the loop
-      current = local_signal[k];
+      //with local_signal_'s data; get's reset at the top of the loop
+      current = local_signal_[k];
       VectorTimesScalar(current, c_[k]);
-      VectorPlusEqualsVector(local_sum, current);
+      VectorPlusEqualsVector(local_sum_, current);
 
       ++k;
     }
   }
-  //Attach local_sum data to the distributed sum matrix
-  sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum.data(), local_height_ );  
+  //Attach local_sum_ data to the distributed sum matrix
+  sum_.Attach(bins_, bins_, *grid_, 0, 0, local_sum_.data(), local_height_ );  
 }
 
 
 
 
 void AngularPowerSpectrum::KLCompression() {
+  if (is_root_) std::cout << "Calculating KL Compression" << std::endl;
   is_compressed_ = true;
   DistMatrix<double> temp_eig(*grid_), temp_transform(*grid_), B(*grid_), B_prime(*grid_), P(*grid_);
   DistMatrix<double,VR,STAR> w(*grid_);
   double p, q;
   int cutoff;
   double *buffer;
+  double elapsed;
+  Timer timer;
+  
+  if (is_root_) std::cout << "Preparing for eigensolver" << std::endl;
+  Barrier();
+  timer.Start();
+  
   Copy(sum_, temp_eig);
   Ones( P, bins_, bins_);
 
@@ -305,13 +332,19 @@ void AngularPowerSpectrum::KLCompression() {
   //math.stackexchange.com/questions/840855/inverse-of-constant-matrix-plus-diagonal-matrix
   p = - kLargeNumber / ( inverse_density_ * (bins_ * kLargeNumber + inverse_density_) );
   q = 1.0 / inverse_density_;
-  std::cout << "Inverse Noise: " << std::endl;
-  std::cout << "p: " << p << std::endl;
-  std::cout << "q: " << q << std::endl;
+  // std::cout << "Inverse Noise: " << std::endl;
+  // std::cout << "p: " << p << std::endl;
+  // std::cout << "q: " << q << std::endl;
 
 
   //Storing Inverse Noise * Sum into temp_eig
   Symm(RIGHT, UPPER, p, sum_, P, q, temp_eig);
+
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: KLCompression-prepare[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "Calculating Eigenvectors" << std::endl;
+  timer.Start();
 
   //Read(temp_eig, "distributed_memory/preeigen.dat", BINARY_FLAT);
 # ifdef APS_OUTPUT_TEST
@@ -330,19 +363,12 @@ void AngularPowerSpectrum::KLCompression() {
   SaveDistributedMatrix("eigenvalues" , temp_w);
 # endif
 
-//   DistMatrix<double> eigen_diagonal(*grid_);
-//   DistMatrix<double> test7(*grid_), test8(*grid_);
-//   std::vector<double> diagonal(w.Height());
-//   for (int i = 0; i < w.Height(); ++i) diagonal[i] = w.Get(i,0);
-//   Diagonal(eigen_diagonal, diagonal);
-//   Ones( test7, bins_, bins_);
-//   Ones( test8, bins_, bins_);
-//   Gemm(NORMAL, NORMAL, 1.0, B, eigen_diagonal, 0.0, test7);
-//   Gemm(NORMAL, TRANSPOSE, 1.0, test7, B, 0.0, test8);
-
-// # ifdef APS_OUTPUT_TEST
-//   SaveDistributedMatrix("preeigen2" , test8);
-// # endif
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: KLCompression-eigensolve[] " << elapsed << std::endl;
+  PrintMemory("KLCompression-before_transform");
+  if (is_root_) std::cout << "Transforming matrices" << std::endl;
+  timer.Start();
 
   //Normalizing: B_{i,j} /= sqrt(N_{ij})
   buffer = B.Buffer();
@@ -356,15 +382,16 @@ void AngularPowerSpectrum::KLCompression() {
 
   //Creating B_prime to keep eigenvectors with eigenvalues > 1
   for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
+  if (is_root_) std::cout << "KL Compression RATIO " << bins_ << ":" << cutoff + 1 << std::endl;
   bins_ = cutoff + 1;
   View(B_prime, B, 0, 0, B.Height(), bins_);
 
   //Create new overdensity vector
-  DistMatrix<double, VC, STAR>  temp_overdensity_(*grid_);
-  Zeros(temp_overdensity_, bins_, 1);
-  //Read(temp_overdensity_, "distributed_memory/kl_overdensity.dat", BINARY_FLAT);
-  Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity_);
-  overdensity_ = temp_overdensity_;
+  DistMatrix<double, VC, STAR>  temp_overdensity(*grid_);
+  Zeros(temp_overdensity, bins_, 1);
+  //Read(temp_overdensity, "distributed_memory/kl_overdensity.dat", BINARY_FLAT);
+  Gemv(TRANSPOSE, 1.0, B_prime, overdensity_, 0.0, temp_overdensity);
+  overdensity_ = temp_overdensity;
 
   //Create new Noise and Signal matrices
   Zeros(noise_, bins_, bins_);
@@ -377,23 +404,41 @@ void AngularPowerSpectrum::KLCompression() {
     signal_[i] = DistMatrix<double>(*grid_);
     Zeros( signal_[i], bins_, bins_);
     // TODO(Alex): Check this is correctly resizing local buffer usage
-    local_signal[i]  = std::vector<double>();
+    local_signal_[i]  = std::vector<double>();
     Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, signal_[i]);
     //Read( signal_[i], "distributed_memory/kl_signal00"+std::to_string(i)+".dat", BINARY_FLAT);
   }
+
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: KLCompression-transform[] " << elapsed << std::endl;
+  PrintMemory("KLCompression-end");
+}
+
+void AngularPowerSpectrum::CreateNoise() {
+  Zeros(noise_, bins_, bins_);
+
+  double *buffer = noise_.Buffer();
+  for( Int jLoc = 0; jLoc < local_width_; ++jLoc ) {
+        const Int j = grid_col_ + jLoc*grid_width_;
+        for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
+            const Int i = grid_row_ + iLoc*grid_height_;
+            buffer[iLoc + jLoc * local_height_] = NoiseAt(i, j);
+        }
+    }
 }
 
 void AngularPowerSpectrum::CalculateDifference() {
   if (is_root_) std::cout << "Calculating Difference" << std::endl;
   difference_ = DistMatrix<double>(*grid_);
-  local_difference = std::vector<double>(local_height_ * local_width_, 0.0f);
+  local_difference_ = std::vector<double>(local_height_ * local_width_, 0.0f);
   DistMatrix<double, STAR, STAR> all_overdensity = overdensity_;
 
   double sum = 0;
   for(int i = 0; i < bins_; ++i) {
     sum += all_overdensity.Get(i, 0);
   }
-  if (is_root_) std::cout << "Overdensity sum: " << sum << std::endl;
+  if (is_root_) std::cout << "Overdensity sum: " << sum << " ~0" << std::endl;
 
   //Difference = overdensity * overdensity transpose - Noise
   if (!is_compressed_) {
@@ -401,7 +446,9 @@ void AngularPowerSpectrum::CalculateDifference() {
         const Int j = grid_col_ + jLoc*grid_width_;
         for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
             const Int i = grid_row_ + iLoc*grid_height_;
-            local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - NoiseAt(i, j);
+            local_difference_[iLoc + jLoc * local_height_] =
+                all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0)
+                - NoiseAt(i, j);
         }
     }
   }else{
@@ -410,20 +457,27 @@ void AngularPowerSpectrum::CalculateDifference() {
         const Int j = grid_col_ + jLoc*grid_width_;
         for( Int iLoc = 0; iLoc < local_height_; ++iLoc ) {
             const Int i = grid_row_ + iLoc*grid_height_;
-            local_difference[iLoc + jLoc * local_height_] = all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0) - buffer[iLoc + jLoc * local_height_];
+            local_difference_[iLoc + jLoc * local_height_] = 
+                all_overdensity.Get(i, 0) * all_overdensity.Get(j, 0)
+                - buffer[iLoc + jLoc * local_height_];
         }
     }
   }
 
-  difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference.data(), local_height_ );
+  difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference_.data(), local_height_ );
 }
 
 void AngularPowerSpectrum::EstimateC() {
-  DistMatrix<double> P(*grid_), I(*grid_), temp_avg(*grid_);
+  if (is_root_) std::cout << "Estimating C" << std::endl;
+  DistMatrix<double> P(*grid_), temp_avg(*grid_);
   std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   Matrix<double> fisher, average, W_prime;
+  double elapsed;
+  Timer timer;
 
   if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
+  Barrier();
+  timer.Start();
 
   //Must recalculate sum if compression has occurred
   if (iteration_ != 0 || is_compressed_) {
@@ -434,14 +488,7 @@ void AngularPowerSpectrum::EstimateC() {
     }
   }
 
-  if (!is_compressed_) {
-    Ones( P, bins_, bins_);
-    Identity( I, bins_, bins_ );
-    Axpy(kLargeNumber, P, sum_);
-    Axpy(inverse_density_, I, sum_);
-  }else{
-    Axpy(1.0, noise_, sum_);
-  }
+  Axpy(1.0, noise_, sum_);
 
 
   //use a different name to make clear that the matrix is different
@@ -449,8 +496,14 @@ void AngularPowerSpectrum::EstimateC() {
   SymmetricInverse(LOWER, covariance_inv);
   // Read(sum_, "data/test_shared_CL_32_model_4/covariance_model_iter_1.dat", BINARY_FLAT);
 
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: EstimateC-covariance[] " << elapsed << std::endl;
+  timer.Start();
+
   /* Fisher Matrix Calculation */
   if (is_root_) std::cout << "Calculating Fisher Matrix" << std::endl;
+
   for (int k = 0; k < bands_; ++k) {
     Zeros(A[k], bins_, bins_);
     /* TODO(Alex): Could use Hemm/Symm for symetric multiplication */
@@ -464,17 +517,29 @@ void AngularPowerSpectrum::EstimateC() {
       fisher.Set(k, k_p, result);
     }
   }
-  if (is_root_) Print(fisher, "Fisher");
+
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: EstimateC-fisher[] " << elapsed << std::endl;
+  timer.Start();
 
 
   /* Average Vector Calculation */
   if (is_root_) std::cout << "Calculating Average vector" << std::endl;
   Zeros(temp_avg, bins_, bins_);
   Zeros(average, bands_, 1);
+  PrintMemory("EstimateC-average");
   for (int k = 0; k < bands_; ++k) {
     Gemm(NORMAL, NORMAL, 1.0, A[k], covariance_inv, 0.0, temp_avg);
     average.Set(k, 0, TraceMultiply(difference_, temp_avg));
+    A[k].Empty();
+
   }
+
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: EstimateC-average[] " << elapsed << std::endl;
+  timer.Start();
   
   /* New Window Matrix and C Calculations */
   if (is_root_) {
@@ -566,6 +631,9 @@ void AngularPowerSpectrum::EstimateC() {
     SaveMatrix(std::string("C_iter_")+std::to_string(iteration_), c_matrix);
 # endif
   }
+  Barrier();
+  elapsed = timer.Stop();
+  if (is_root_) std::cout << "TIME: EstimateC-c[] " << elapsed << std::endl;
   mpi::Broadcast(c_, bands_, 0, grid_->Comm());
 
   //Save distributed matrix
@@ -601,6 +669,20 @@ void AngularPowerSpectrum::PrintRawArray(std::vector<double> v, int length,
       std::cout << " " << v[i + j*height];
     }
     std::cout << std::endl;
+  }
+}
+
+void AngularPowerSpectrum::PrintMemory(std::string location) {
+  struct mallinfo m;
+  m = mallinfo();
+  for (int i = 0; i<grid_->Size(); ++i) {
+    if (grid_->Rank() == i) std::cout << "MALLOC: " << location
+              << "." << i
+              << " total: " << m.hblkhd + m.uordblks
+              << " mmap: " << m.hblkhd
+              << " chunks: " << m.uordblks
+              << " sbrk: " << m.arena << std::endl;
+    Barrier();
   }
 }
 
