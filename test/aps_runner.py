@@ -71,8 +71,8 @@ def create_pbs(run):
     script.append("#PBS -o {}/out_{}".format(OUTPUT_DIR, run.name))
     script.append("cd {}".format(APS_DIR))
     script.append("mkdir -p {}".format(OUTPUT_DIR))
-    cmd = "mpiexec ./distributed_memory/aps {}/{} {}/{} {}".format(
-            DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name)
+    cmd = "mpiexec -n {} ./distributed_memory/aps {}/{} {}/{} {}".format(
+            run.mpi_nodes, DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name)
     script.append('echo "{}"'.format(cmd))
     script.append(DIVIDER)
     script.append(cmd)
@@ -118,7 +118,6 @@ STANDARD_ = {
     'name':"x",
 }
 
-#1 2 2 4 3 6
 runs = [aps_run(NUM_CORE_COMPARE)]
 runs = cross_runs(runs, 'nodes', [1,2])
 runs = cross_runs(runs, 'threads', [6,12])
