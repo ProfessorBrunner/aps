@@ -56,16 +56,18 @@ void FixC(double *buffer, int length){
 
 int main(int argc, char *argv[]) {
   Initialize(  argc, argv  );
-  if (argc != 3) {
-    std::cout << "Error: Expected 2 arguments" << std::endl
-              << "Usage:" << std::endl
-              << "./aps [overdensity.fits] [bandpowers.bands]" << std::endl;
+  if (argc != 3 && argc != 4) {
+    if (mpi::Rank(mpi::COMM_WORLD) == 0) 
+        std::cout << "Error: Expected 2 arguments, 1 optional" 
+            << std::endl << "Usage:" << std::endl
+            << "./aps [overdensity.fits] [bandpowers.bands] [optional outputname]" << std::endl;
+    Finalize();
     return EXIT_FAILURE;
   }
 
   int bands, bins;
   double total_galaxies, omega;
-  std::string output_directory, test_name, test_directory, input_name;
+  std::string output_directory, test_name, test_directory, output_name;
 
   OverdensityMap *mp;
   BandPower *bp;
@@ -88,20 +90,26 @@ int main(int argc, char *argv[]) {
     //Determine output file directories
     output_directory = std::string(argv[2]);
     int char_position = output_directory.find_last_of('/');
-    input_name = output_directory.substr(char_position+1);
+    output_name = output_directory.substr(char_position+1);
 
     output_directory = output_directory.substr(0, char_position);
-    
-    char_position = input_name.find_last_of('.');
-    input_name = input_name.substr(0, char_position);
+
+    if (argc == 4) {
+      output_name = std::string(argv[3]);
+    }else{
+      char_position = output_name.find_last_of('.');
+      output_name = output_name.substr(0, char_position);
+    }
+
     test_directory = output_directory + "/" + std::string("test_distributed_") +
-        input_name + "/";
+        output_name + "/";
 
     output_directory = output_directory + "/output_distributed";
     mkdir(output_directory.c_str(), 0766);
 
 
     std::cout << "Data output directory: " << output_directory << std::endl;
+    std::cout << "Data output name: " << output_name << std::endl;
 #   ifdef APS_OUTPUT_TEST
     std::cout << "Test data output directory: " << test_directory << std::endl;
     mkdir(test_directory.c_str(), 0766);
@@ -128,7 +136,7 @@ int main(int argc, char *argv[]) {
 
     aps.output_directory_ = output_directory;
     aps.test_directory_ = test_directory;
-    aps.input_name_ = input_name;
+    aps.output_name_ = output_name;
   }
 
   //Distribute arrays to all the children

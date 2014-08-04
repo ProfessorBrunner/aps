@@ -604,7 +604,7 @@ void AngularPowerSpectrum::EstimateC() {
     //Save bands into output file
     FILE* band_file;
     std::string band_file_name = output_directory_ + std::string("/C_") + 
-        input_name_ + std::string(".bands");
+        output_name_ + std::string(".bands");
     if (iteration_ == 1) {
       band_file = fopen(band_file_name.c_str(), "w");
     }else{
