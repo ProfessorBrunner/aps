@@ -151,9 +151,12 @@ int main(int argc, char *argv[]) {
     delete bp;
   }
 
+  if (grid.Rank() == 0) std::cerr << "Testing cerr" << std::endl
+
   aps.run();
 
-  //mpi::Barrier(mpi::COMM_WORLD);
+  if (grid.Rank() == 0) std::cout << "Finished running" << std::endl
+
   Finalize();
   return EXIT_SUCCESS;
 }

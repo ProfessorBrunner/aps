@@ -8,10 +8,11 @@ from hashlib import sha224
 import cPickle as pickle
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
-APS_DIR="/home/amwarren/aps"
-#APS_DIR="/home/alex/pop_uiuc/aps"
+#APS_DIR="/home/amwarren/aps"
+APS_DIR="/home/alex/pop_uiuc/aps"
 DATA_DIR="{}/data".format(APS_DIR)
 OUTPUT_DIR="{}/output_distributed".format(DATA_DIR)
+DIVIDER = "#" * 50
 
 class aps_run:
     def __init__(self, kwargs):
@@ -70,8 +71,11 @@ def create_pbs(run):
     script.append("#PBS -o {}/out_{}".format(OUTPUT_DIR, run.name))
     script.append("cd {}".format(APS_DIR))
     script.append("mkdir -p {}".format(OUTPUT_DIR))
-    script.append("mpiexec ./distributed_memory/aps {}/{} {}/{} {}".format(
-            DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name))
+    cmd = "mpiexec ./distributed_memory/aps {}/{} {}/{} {}".format(
+            DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name)
+    script.append('echo "{}"'.format(cmd))
+    script.append(DIVIDER)
+    script.append(cmd)
     return '\n'.join(script)
 
 def create_batch_name(runs, prefix='batch'):
@@ -81,13 +85,15 @@ def create_batch_name(runs, prefix='batch'):
 
 
 NUM_CORE_COMPARE = {
+    'mpi_nodes':1,
     'nodes':1,
     'threads':12,
+    'threads_per_core':6,
     'nside':32,
     'pixels':1024,
     'bands':40,
     'run':1,
-    'time':"00:10:00",
+    'time':"00:30:00",
     'memory':"m24G",
     'cluster':"taub",
     'kl':False,
@@ -112,19 +118,28 @@ STANDARD_ = {
     'name':"x",
 }
 
-
+#1 2 2 4 3 6
 runs = [aps_run(NUM_CORE_COMPARE)]
-runs = cross_runs(runs, 'nodes', [1,2,3])
+runs = cross_runs(runs, 'nodes', [1,2])
 runs = cross_runs(runs, 'threads', [6,12])
+runs = cross_runs(runs, 'mpi_nodes', [1,2])
 runs = cross_runs(runs, 'repeat', [1,2,3])
 
 submit_script = open("submit.bash", 'w')
+submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
 for run in runs:
-    run.name_from_keys(['nside', 'nodes', 'threads'], prefix="web_orig")
+    run.cores = run.threads/run.threads_per_core * run.nodes
+    run.mpi_nodes = run.mpi_nodes * run.cores
+    run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
     pbs_file_name = "{}.pbs".format(run.name)
     pbs_file = open(pbs_file_name, 'w')
 
-    submit_script.write("qsub {}.pbs\n".format(run.name))
+    qcmds = ['\n\n### {}'.format(run.name)]
+    qcmds.append('jobname=`qsub {}.pbs`'.format(run.name))
+    qcmds.append('echo "$jobname"')
+    qcmds.append('echo "qdel $jobname" | cut -d\'.\' -f 1 >> abort.bash')
+    submit_script.write('\n'.join(qcmds))
+
     pbs_file.write(create_pbs(run))
 
 batch_name = create_batch_name(runs, "32_node_compare")
