@@ -88,7 +88,7 @@ NUM_CORE_COMPARE = {
     'bands':40,
     'run':1,
     'time':"00:10:00",
-    'memory':"m12G",
+    'memory':"m24G",
     'cluster':"taub",
     'kl':False,
     'noise_model':'standard',
