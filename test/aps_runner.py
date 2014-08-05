@@ -3,15 +3,17 @@
 Create run scripts for performance and verification.
 """
 
+from generate_inputs_2 import aps_input
 from copy import deepcopy
 from hashlib import sha224
 import cPickle as pickle
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
 #APS_DIR="/home/amwarren/aps"
-APS_DIR="/home/alex/pop_uiuc/aps"
-DATA_DIR="{}/data".format(APS_DIR)
-OUTPUT_DIR="{}/output_distributed".format(DATA_DIR)
+APS_DIR = "/home/alex/pop_uiuc/aps"
+DATA_DIR = "{}/data".format(APS_DIR)
+SOURCES_DIR = "{}/sources".format(DATA_DIR)
+OUTPUT_DIR = "{}/output_distributed".format(DATA_DIR)
 DIVIDER = "#" * 50
 
 class aps_run:
@@ -71,8 +73,8 @@ def create_pbs(run):
     script.append("#PBS -o {}/out_{}".format(OUTPUT_DIR, run.name))
     script.append("cd {}".format(APS_DIR))
     script.append("mkdir -p {}".format(OUTPUT_DIR))
-    cmd = "mpiexec -n {} ./distributed_memory/aps {}/{} {}/{} {}".format(
-            run.mpi_nodes, DATA_DIR, run.fits_file, DATA_DIR, run.bands_file, run.name)
+    cmd = "mpiexec -verbose -n {} ./distributed_memory/aps {} {} {}".format(
+            run.mpi_nodes, run.fits_file, run.bands_file, run.name)
     script.append('echo "{}"'.format(cmd))
     script.append(DIVIDER)
     script.append(cmd)
@@ -93,7 +95,7 @@ NUM_CORE_COMPARE = {
     'pixels':1024,
     'bands':40,
     'run':1,
-    'time':"00:30:00",
+    'time':"00:20:00",
     'memory':"m24G",
     'cluster':"taub",
     'kl':False,
@@ -101,6 +103,7 @@ NUM_CORE_COMPARE = {
     'cross_correlation':False,
     'fits_file':"32_1000000_model_4.fits",
     'bands_file':"CL_32_model_4.bands",
+    'source':"CL_model0_0.30_0.40_zspec_799_fit2.dat",
     'name':"x",
 }
 
@@ -118,18 +121,35 @@ STANDARD_ = {
     'name':"x",
 }
 
-runs = [aps_run(NUM_CORE_COMPARE)]
+
+run = aps_run(NUM_CORE_COMPARE)
+aps_in = aps_input(SOURCES_DIR+"/"+run.source, run.nside)
+
+runs = [run]
 runs = cross_runs(runs, 'nodes', [1,2])
 runs = cross_runs(runs, 'threads', [6,12])
 runs = cross_runs(runs, 'mpi_nodes', [1,2])
-runs = cross_runs(runs, 'repeat', [1,2,3])
+runs = cross_runs(runs, 'repeat', [1,2, 3])
+batch_name = create_batch_name(runs, "32_node_compare")
+
 
 submit_script = open("submit.bash", 'w')
 submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
-for run in runs:
+for i, run in enumerate(runs):
+    aps_in_temp = deepcopy(aps_in)
+    aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
+    run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
+    run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
+
+    aps_in_temp.write(run.fits_file, run.bands_file)
+
+    run.pixels = aps_in_temp.pixels
+    run.initial_cl = aps_in_temp.initial_cl
+
     run.cores = run.threads/run.threads_per_core * run.nodes
     run.mpi_nodes = run.mpi_nodes * run.cores
     run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
+
     pbs_file_name = "{}.pbs".format(run.name)
     pbs_file = open(pbs_file_name, 'w')
 
@@ -141,6 +161,5 @@ for run in runs:
 
     pbs_file.write(create_pbs(run))
 
-batch_name = create_batch_name(runs, "32_node_compare")
 pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
 pickle.dump(runs, pickle_file)
