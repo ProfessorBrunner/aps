@@ -7,6 +7,8 @@ from generate_inputs_2 import aps_input
 from copy import deepcopy
 from hashlib import sha224
 import cPickle as pickle
+import numpy as np
+import re
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
 #APS_DIR="/home/amwarren/aps"
@@ -46,6 +48,101 @@ class aps_run:
     def __repr__(self):
         return self.name
 
+    def load_result(self):
+        self.time_results = {}
+        self.mem_results = {}
+        out_file = open("{}/out_{}".format(OUTPUT_DIR, self.name), 'r')
+        re_time = re.compile(r'TIME:')
+        re_malloc = re.compile(r'MALLOC:')
+        re_resources = re.compile(r'Resources:')
+        for line in out_file:
+            line.strip()
+            if re_time.match(line):
+                self.load_result_time(line)
+            elif re_malloc.match(line):
+                self.load_result_malloc(line)
+            elif re_resources.match(line):
+                self.load_result_resources(line)
+
+        self.malloc_max = 0
+        self.malloc_max_id = ""
+
+        for mem_id, mem_list in self.mem_results.iteritems():
+            for mem in mem_list:
+                if mem >  self.malloc_max:
+                    self.malloc_max = mem
+                    self.malloc_max_id = mem_id
+
+        self.total_time = self.time_results['Total'][0]
+        self.load_band_output()
+
+        # print "%s: %d" % (self.malloc_max_id, self.malloc_max)
+        # print "torque %d" % self.torque_mem
+        # print "total time %f" % self.total_time
+
+    def load_result_time(self, line):
+        """load result for timing"""
+        #print "T %s " % line
+        line_split = line.split(' ')
+        id_split = line_split[1].split('[')
+        time = float(line_split[2])
+        time_id = id_split[0]
+        time_params = id_split[1]
+        #print "%s    ~     %s " % (time_id, time)
+        if time_id in self.time_results:
+            self.time_results[time_id].append(time)
+        else:
+            self.time_results[time_id] = [time]
+
+    def load_result_malloc(self, line):
+        """load result for malloc"""
+        #print "M %s " % line
+        line_split = line.split(' ')
+        id_split = line_split[1].split('.')
+        mem_id = id_split[0]
+        node = int(id_split[1])
+        total_mem = int(line_split[3])
+
+        if mem_id in self.mem_results:
+            if node == 0:
+                self.mem_results[mem_id].append(total_mem)
+            else:
+                self.mem_results[mem_id][-1] += total_mem
+        else:
+            self.mem_results[mem_id] = [total_mem]
+
+
+    def load_result_resources(self, line):
+        """load result for resource usage"""
+        resources = line.split()
+        resources = [x for x in resources if x]
+        resources = resources[1].split(',')
+        for resource in resources:
+            resource_split = resource.split('=')
+            key, val = resource_split[0], resource_split[1]
+            if key == "mem":
+                self.torque_mem = get_bytes(val)
+            elif key == "vmem":
+                self.torque_vmem = get_bytes(val)
+
+    def load_band_output(self):
+        file_name = "{}/C_{}.bands".format(OUTPUT_DIR, self.name)
+        _, self.l, _, _, self.cl, _, _ = \
+                np.loadtxt(file_name, dtype=float, unpack=True)
+        neg = np.where(self.cl < 0)
+        if neg[0].any():
+            print "Negative at {}".format(self.name)
+            print neg[0]
+        self.cl = np.sqrt(4*self.cl)
+
+def get_bytes(string):
+    multiplier = 1
+    if string[-1] == 'b':
+        string = string[0:-1]
+    if string[-1] == 'k':
+        multiplier = 1024
+        string = string[0:-1]
+    return int(string)*multiplier
 
 def cross_runs(runs, key, values):
     result = []
@@ -86,6 +183,7 @@ def create_batch_name(runs, prefix='batch'):
     return "{}_{}".format(prefix, unique)
 
 
+
 NUM_CORE_COMPARE = {
     'mpi_nodes':1,
     'nodes':1,
@@ -121,45 +219,48 @@ STANDARD_ = {
     'name':"x",
 }
 
+def make_num_core_compare_batch():
+    run = aps_run(NUM_CORE_COMPARE)
+    aps_in = aps_input("{}/{}".format(SOURCES_DIR, run.source), run.nside)
 
-run = aps_run(NUM_CORE_COMPARE)
-aps_in = aps_input(SOURCES_DIR+"/"+run.source, run.nside)
-
-runs = [run]
-runs = cross_runs(runs, 'nodes', [1,2])
-runs = cross_runs(runs, 'threads', [6,12])
-runs = cross_runs(runs, 'mpi_nodes', [1,2])
-runs = cross_runs(runs, 'repeat', [1,2, 3])
-batch_name = create_batch_name(runs, "32_node_compare")
+    runs = [run]
+    runs = cross_runs(runs, 'nodes', [1,2])
+    runs = cross_runs(runs, 'threads', [6,12])
+    runs = cross_runs(runs, 'mpi_nodes', [1,2])
+    runs = cross_runs(runs, 'repeat', [1,2, 3])
+    batch_name = create_batch_name(runs, "32_node_compare")
 
 
-submit_script = open("submit.bash", 'w')
-submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
-for i, run in enumerate(runs):
-    aps_in_temp = deepcopy(aps_in)
-    aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
-    run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
-    run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
+    submit_script = open("submit.bash", 'w')
+    submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
+    for i, run in enumerate(runs):
+        aps_in_temp = deepcopy(aps_in)
+        aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
+        run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
+        run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
 
-    aps_in_temp.write(run.fits_file, run.bands_file)
+        aps_in_temp.write(run.fits_file, run.bands_file)
 
-    run.pixels = aps_in_temp.pixels
-    run.initial_cl = aps_in_temp.initial_cl
+        run.pixels = aps_in_temp.pixels
+        run.initial_cl = aps_in_temp.initial_cl
 
-    run.cores = run.threads/run.threads_per_core * run.nodes
-    run.mpi_nodes = run.mpi_nodes * run.cores
-    run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
+        run.cores = run.threads/run.threads_per_core * run.nodes
+        run.mpi_nodes = run.mpi_nodes * run.cores
+        run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
 
-    pbs_file_name = "{}.pbs".format(run.name)
-    pbs_file = open(pbs_file_name, 'w')
+        pbs_file_name = "{}.pbs".format(run.name)
+        pbs_file = open(pbs_file_name, 'w')
 
-    qcmds = ['\n\n### {}'.format(run.name)]
-    qcmds.append('jobname=`qsub {}.pbs`'.format(run.name))
-    qcmds.append('echo "$jobname"')
-    qcmds.append('echo "qdel $jobname" | cut -d\'.\' -f 1 >> abort.bash')
-    submit_script.write('\n'.join(qcmds))
+        qcmds = ['\n\n### {}'.format(run.name)]
+        qcmds.append('jobname=`qsub {}.pbs`'.format(run.name))
+        qcmds.append('echo "$jobname"')
+        qcmds.append('echo "qdel $jobname" | cut -d\'.\' -f 1 >> abort.bash')
+        submit_script.write('\n'.join(qcmds))
 
-    pbs_file.write(create_pbs(run))
+        pbs_file.write(create_pbs(run))
 
-pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
-pickle.dump(runs, pickle_file)
+    pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
+    pickle.dump(runs, pickle_file)
+
+if __name__ == "__main__":
+    make_num_core_compare_batch()

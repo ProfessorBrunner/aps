@@ -121,7 +121,7 @@ void AngularPowerSpectrum::run() {
   Barrier();
   elapsed = timer.Stop();
   PrintMemory("CalculateSignal-end");
-  if (is_root_) std::cout << "TIME: CalculateSignal[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: CalculateSignal[ " << elapsed << std::endl;
 
   //Save Signal Matrix to File
 # ifdef APS_OUTPUT_TEST
@@ -149,7 +149,7 @@ void AngularPowerSpectrum::run() {
   Barrier();
   elapsed = timer.Stop();
   PrintMemory("KLCompression-after");
-  if (is_root_) std::cout << "TIME: KLCompression[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: KLCompression[ " << elapsed << std::endl;
 
 # ifdef APS_OUTPUT_TEST
   for (int k = 0; k < bands_; ++k){
@@ -172,7 +172,7 @@ void AngularPowerSpectrum::run() {
   CreateNoise();
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: CreateNoise[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: CreateNoise[ " << elapsed << std::endl;
 # endif
 
   /*CALCULATE DIFFERENCE*/
@@ -183,7 +183,7 @@ void AngularPowerSpectrum::run() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: CalculateDifference[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: CalculateDifference[ " << elapsed << std::endl;
 
   //Save Difference Matrix to File
 # ifdef APS_OUTPUT_TEST
@@ -204,15 +204,15 @@ void AngularPowerSpectrum::run() {
 
     Barrier();
     elapsed = iteration_timer.Stop();
-    if (is_root_) std::cout << "TIME: EstimateC[iter=" << iteration_ << "] " 
+    if (is_root_) std::cout << "TIME: EstimateC[iter=" << iteration_ << " " 
         << elapsed << std::endl;
   }
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: TotalIterations[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: TotalIterations[ " << elapsed << std::endl;
   elapsed = total_timer.Stop();
-  if (is_root_) std::cout << "TIME: Total[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: Total[ " << elapsed << std::endl;
 }
 
 
@@ -342,7 +342,7 @@ void AngularPowerSpectrum::KLCompression() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: KLCompression-prepare[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: KLCompression-prepare[ " << elapsed << std::endl;
   if (is_root_) std::cout << "Calculating Eigenvectors" << std::endl;
   timer.Start();
 
@@ -365,7 +365,7 @@ void AngularPowerSpectrum::KLCompression() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: KLCompression-eigensolve[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: KLCompression-eigensolve[ " << elapsed << std::endl;
   PrintMemory("KLCompression-before_transform");
   if (is_root_) std::cout << "Transforming matrices" << std::endl;
   timer.Start();
@@ -411,7 +411,7 @@ void AngularPowerSpectrum::KLCompression() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: KLCompression-transform[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: KLCompression-transform[ " << elapsed << std::endl;
   PrintMemory("KLCompression-end");
 }
 
@@ -498,7 +498,7 @@ void AngularPowerSpectrum::EstimateC() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: EstimateC-covariance[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: EstimateC-covariance[ " << elapsed << std::endl;
   timer.Start();
 
   /* Fisher Matrix Calculation */
@@ -520,7 +520,7 @@ void AngularPowerSpectrum::EstimateC() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: EstimateC-fisher[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: EstimateC-fisher[ " << elapsed << std::endl;
   timer.Start();
 
 
@@ -538,7 +538,7 @@ void AngularPowerSpectrum::EstimateC() {
 
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: EstimateC-average[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: EstimateC-average[ " << elapsed << std::endl;
   timer.Start();
   
   /* New Window Matrix and C Calculations */
@@ -633,7 +633,7 @@ void AngularPowerSpectrum::EstimateC() {
   }
   Barrier();
   elapsed = timer.Stop();
-  if (is_root_) std::cout << "TIME: EstimateC-c[] " << elapsed << std::endl;
+  if (is_root_) std::cout << "TIME: EstimateC-c[ " << elapsed << std::endl;
   mpi::Broadcast(c_, bands_, 0, grid_->Comm());
 
   //Save distributed matrix
