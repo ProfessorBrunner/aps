@@ -22,7 +22,7 @@ distributed_memory: .FORCE
 #################################################################################
 
 TEST_NSIDE=8
-NUM_PROC=4
+NUM_PROC=1
 FITS=$(TEST_NSIDE)_53918_lcdm
 BANDS=CL_$(TEST_NSIDE)_lcdm
 # FITS=32_1000000_model_4
@@ -33,17 +33,19 @@ SHARED_TEST_DIR=data/test_shared_$(BANDS)
 FITS_PATH=data/$(FITS).fits
 BANDS_PATH=data/$(BANDS).bands
 
+COMPARE_FLAGS=-o data/kl_graphs/ --heat-plot
+
 test_shared: shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	rm -rf $(SHARED_TEST_DIR)
 	./shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	./test/cat_signal.bash $(SHARED_TEST_DIR)
-	./test/compare_test_directories.py data/standard $(SHARED_TEST_DIR)
+	./test/compare_test_directories.py data/standard $(SHARED_TEST_DIR) $(COMPARE_FLAGS)
 
 test_distributed: distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	rm -rf $(DISTRIBUTED_TEST_DIR)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	./test/cat_signal.bash $(DISTRIBUTED_TEST_DIR)
-	./test/compare_test_directories.py data/standard $(DISTRIBUTED_TEST_DIR)
+	./test/compare_test_directories.py data/standard $(DISTRIBUTED_TEST_DIR) $(COMPARE_FLAGS)
 
 test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	@echo
@@ -55,9 +57,9 @@ test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $
 	./shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 
-	./test/cat_signal.bash $(SHARED_TEST_DIR)
-	./test/cat_signal.bash $(DISTRIBUTED_TEST_DIR)
-	./test/compare_test_directories.py $(SHARED_TEST_DIR) $(DISTRIBUTED_TEST_DIR)
+	# ./test/cat_signal.bash $(SHARED_TEST_DIR)
+	# ./test/cat_signal.bash $(DISTRIBUTED_TEST_DIR)
+	./test/compare_test_directories.py $(SHARED_TEST_DIR) $(DISTRIBUTED_TEST_DIR)  $(COMPARE_FLAGS)
 
 distributed_memory/aps_test: .FORCE
 	@echo

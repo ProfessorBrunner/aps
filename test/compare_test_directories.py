@@ -30,10 +30,10 @@ IMPORTANT_FILES = [
     'average',
     # # 'signal00[0-3]',
     'covariance_model_iter_',
-    # 'kl_signal001',
+    'kl_signal',
     # # 'eigenvalues',
     # # 'eigenvectors',
-    # # 'kl_noise',
+    'kl_noise',
     # # 'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
@@ -42,19 +42,19 @@ IMPORTANT_REGEX_LIST = [re.compile(x) for x in IMPORTANT_FILES]
 
 GRAPH_FILES = [
     # 'signal[0-9]{3}',
-    'inv_sqrt_fisher',
-    'inv_fisher',
-    'pre_window',
-    'Y',
+    #'inv_sqrt_fisher',
+    #'inv_fisher',
+    #'pre_window',
+    #'Y',
     'kl_signal[0-9]{3}',
-    'average',
-    # 'kl_noise',
-    # 'kl_overdensity',
+    #'average',
+    'kl_noise',
+    'kl_overdensity',
     'fisher_iter_[0-9]*', 
     'window_iter_[0-9]*',
     'C_iter_[0-9]*',
     'covariance_model_iter_[0-9]*',
-    'difference',
+    #'difference',
     'preeigen',
     ]
 # GRAPH_FILES=[
@@ -62,6 +62,16 @@ GRAPH_FILES = [
 #     'kl_signal001',
 #     'kl_overdensity',
 # ]
+GRAPH_FILES = [
+    'difference',
+    'eigenvectors',
+    'eigenvalues',
+    'kl_noise',
+    'fisher',
+    'covariance_model_iter',
+    'kl_overdensity',
+    'C_iter_'
+]
 GRAPH_REGEX_LIST = [re.compile(x) for x in GRAPH_FILES]
 
 def format_name(name, strip_numbers=False):
