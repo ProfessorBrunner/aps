@@ -196,7 +196,7 @@ NUM_CORE_COMPARE = {
     'time':"00:20:00",
     'memory':"m24G",
     'cluster':"taub",
-    'kl':False,
+    'kl':True,
     'noise_model':'standard',
     'cross_correlation':False,
     'fits_file':"32_1000000_model_4.fits",
@@ -211,7 +211,7 @@ STANDARD_ = {
     'nside':64,
     'pixels':6836,
     'bands':10,
-    'kl':False,
+    'kl':True,
     'noise_model':'standard',
     'cross_correlation':False,
     'fits_file':"32_1000000_model_4.fits",
@@ -224,9 +224,9 @@ def make_num_core_compare_batch():
     aps_in = aps_input("{}/{}".format(SOURCES_DIR, run.source), run.nside)
 
     runs = [run]
-    runs = cross_runs(runs, 'nodes', [1,2])
+    #runs = cross_runs(runs, 'cores', [1,2])
     runs = cross_runs(runs, 'threads', [6,12])
-    runs = cross_runs(runs, 'mpi_nodes', [1,2])
+    runs = cross_runs(runs, 'mpi_nodes', [1,2,3,4,5,6,7,8])
     runs = cross_runs(runs, 'repeat', [1,2, 3])
     batch_name = create_batch_name(runs, "32_node_compare")
 
@@ -245,7 +245,7 @@ def make_num_core_compare_batch():
         run.initial_cl = aps_in_temp.initial_cl
 
         run.cores = run.threads/run.threads_per_core * run.nodes
-        run.mpi_nodes = run.mpi_nodes * run.cores
+        #run.mpi_nodes = run.mpi_nodes * run.cores
         run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
 
         pbs_file_name = "{}.pbs".format(run.name)
