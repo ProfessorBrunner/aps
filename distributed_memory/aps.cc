@@ -55,7 +55,8 @@ void FixC(double *buffer, int length){
 }
 
 int main(int argc, char *argv[]) {
-  Initialize(  argc, argv  );
+  mpi::Initialize(argc, argv);
+  Initialize(argc, argv);
   if (argc != 3 && argc != 4) {
     if (mpi::Rank(mpi::COMM_WORLD) == 0) 
         std::cout << "Error: Expected 2 arguments, 1 optional" 
@@ -156,5 +157,6 @@ int main(int argc, char *argv[]) {
   if (grid.Rank() == 0) std::cout << "Finalize" << std::endl;
 
   Finalize();
-  return EXIT_SUCCESS;
+  mpi::Finalize();
+  return 0;
 }

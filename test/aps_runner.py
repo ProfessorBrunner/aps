@@ -226,14 +226,16 @@ def make_num_core_compare_batch():
     runs = [run]
     #runs = cross_runs(runs, 'cores', [1,2])
     runs = cross_runs(runs, 'threads', [6,12])
-    runs = cross_runs(runs, 'mpi_nodes', [1,2,3,4,5,6,7,8])
-    runs = cross_runs(runs, 'repeat', [1,2, 3])
+    runs = cross_runs(runs, 'mpi_nodes', [1,2,3,4,5,6,7,8,9,10,11,12])
+    runs = cross_runs(runs, 'repeat', [1,2])
     batch_name = create_batch_name(runs, "32_node_compare")
 
 
     submit_script = open("submit.bash", 'w')
     submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
     for i, run in enumerate(runs):
+        if run.mpi_nodes > run.threads:
+            continue
         aps_in_temp = deepcopy(aps_in)
         aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
         run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
