@@ -596,6 +596,7 @@ void AngularPowerSpectrum::EstimateC() {
     }
 
     //Save bands into output file
+    //TODO(Alex): Also output window and fisher matrix
     FILE* band_file;
     std::string band_file_name = output_directory_ + std::string("/C_") + 
         output_name_ + std::string(".bands");
