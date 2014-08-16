@@ -57,21 +57,22 @@ GRAPH_FILES = [
     #'difference',
     'preeigen',
     ]
-# GRAPH_FILES=[
-#     'kl_noise',
-#     'kl_signal001',
-#     'kl_overdensity',
-# ]
-GRAPH_FILES = [
-    'difference',
-    'eigenvectors',
+GRAPH_FILES=[
+    'signal000',
+    'preeigen',
     'eigenvalues',
-    'kl_noise',
-    'fisher',
-    'covariance_model_iter',
-    'kl_overdensity',
-    'C_iter_'
+    'eigenvectors'
 ]
+# GRAPH_FILES = [
+#     'difference',
+#     'eigenvectors',
+#     'eigenvalues',
+#     'kl_noise',
+#     'fisher',
+#     'covariance_model_iter',
+#     'kl_overdensity',
+#     'C_iter_'
+# ]
 GRAPH_REGEX_LIST = [re.compile(x) for x in GRAPH_FILES]
 
 def format_name(name, strip_numbers=False):
@@ -107,7 +108,10 @@ def direct_list_compare(expected, observed):
     
 def print_numpy_with_format(matrix):
     for r in matrix:
-        print ' '.join(['%3.10f' % x for x in r])
+        print(' '.join(['%3.10f' % x for x in r]))
+
+def print_vector_with_format(vector):
+    print(' '.join(['%3.10f' % x for x in vector]))
 
 def raw_matrix(expected, observed):
     np.set_printoptions(threshold=np.nan, linewidth=8000)
@@ -156,8 +160,9 @@ def custom_compare_files(expected_path, observed_path, files):
     """
     for f in files:
         expected, observed, error, relative_error = \
-            get_file_error(join(expected_path, f), join(observed_path, f), True)
-
+            get_file_error(join(expected_path, f), join(observed_path, f), reshape=False)
+        print_vector_with_format(expected)
+        return
         # raw_matrix(expected, observed)
         # # idx_exp = np.argsort(expected[0])
         # # idx_obs = np.argsort(observed[0])

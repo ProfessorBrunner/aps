@@ -190,6 +190,7 @@ NUM_CORE_COMPARE = {
     'threads':12,
     'threads_per_core':6,
     'nside':32,
+    'ngalaxies':1e9,
     'pixels':1024,
     'bands':40,
     'run':1,
@@ -241,7 +242,7 @@ def make_num_core_compare_batch():
         run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
         run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
 
-        aps_in_temp.write(run.fits_file, run.bands_file)
+        aps_in_temp.write(run.fits_file, run.bands_file, ngalaxies=run.ngalaxies)
 
         run.pixels = aps_in_temp.pixels
         run.initial_cl = aps_in_temp.initial_cl

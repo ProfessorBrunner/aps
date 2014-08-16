@@ -51,8 +51,8 @@ test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $
 	@echo
 	@echo "Running tests and creating output"
 	@echo "Clearing test output directories"
-	rm -rf $(DISTRIBUTED_TEST_DIR)
-	rm -rf $(SHARED_TEST_DIR)
+	-rm -rf $(DISTRIBUTED_TEST_DIR)
+	-rm -rf $(SHARED_TEST_DIR)
 
 	./shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
