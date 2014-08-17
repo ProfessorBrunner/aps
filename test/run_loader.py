@@ -8,7 +8,7 @@ import cPickle as pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-INPUT_PICKLE="{}/32_node_compare_7a9f59c4db0592338363.pkl".format(OUTPUT_DIR)
+INPUT_PICKLE="{}/32_node_compare_882796b23c43b9a3bafc.pkl".format(OUTPUT_DIR)
 
 def load_run(input_file):
     runs = pickle.load(open(input_file,'rb'))
@@ -73,51 +73,51 @@ def node_compare_lists(runs):
 
     N = len(times)
     ind = np.arange(N)
-    width = .5
+    width = 1
 
     fig = plt.figure(figsize=(8,6))
     ax = plt.subplot()
     fig.subplots_adjust(bottom=0.25, left=.15)
-    memax = fig.add_axes(ax.get_position())
-    ax.set_ylim(0, 1600)
-    memax.set_ylim(0, 2400)
-    memax.patch.set_visible(False)
-    memax.yaxis.set_label_position('right')
-    memax.yaxis.set_ticks_position('right')
-    memax.spines['bottom'].set_position(('outward', 35))
+    # memax = fig.add_axes(ax.get_position())
+    ax.set_ylim(0, 1700)
+    # memax.set_ylim(0, 2400)
+    # memax.patch.set_visible(False)
+    # memax.yaxis.set_label_position('right')
+    # memax.yaxis.set_ticks_position('right')
+    # memax.spines['bottom'].set_position(('outward', 35))
 
     ax.yaxis.grid(True)
     ax.set_ylabel('Time (seconds)', fontsize=16)
     ax.get_xaxis().set_visible(False)
-    memax.get_xaxis().set_visible(False)
-    memax.set_ylabel('Memory (megabytes)', fontsize=16)
-    memax.spines['bottom'].set_visible(False)
+    # memax.get_xaxis().set_visible(False)
+    # memax.set_ylabel('Memory (megabytes)', fontsize=16)
+    # memax.spines['bottom'].set_visible(False)
 
 
     rect_time = ax.bar(ind, times, width, color='r')
     rect_kl_time = ax.bar(ind, kl_times, width, color='g')
-    rect_mem = memax.bar(ind+width, total_memory, width, color='y')
+    # rect_mem = memax.bar(ind+width, total_memory, width, color='y')
     #plt.axvline(x=3.8, ymin=-1, ymax = 1, linewidth=1, color='k')
 
-    ax.legend( (rect_time[0], rect_kl_time[0],rect_mem), 
-            ('Runtime', 'eigensolver time', 'Total memory'), 
+    ax.legend( (rect_time[0], rect_kl_time[0]), 
+            ('Runtime', 'eigensolver time'), 
             loc=9, prop={'size':16}, bbox_to_anchor=[.3, 1.])
 
     annotate_kwargs = {'xycoords':'axes fraction', 'textcoords':'offset points', 'va':'top', 'size':14}
 
-
+    plt.title("2 Nodes")
     plt.annotate('Processes', (0,0), (-80, -15), **annotate_kwargs)
     interval = 420.0/N
-    for i, val in zip(xrange(N), [1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12]):
+    for i, val in zip(xrange(N), [1,2,3,4,5,6,7,8,9,10,11,'',1,2,3,4,5,6,7,8,9,10,11,'']):
         plt.annotate(str(val), (0,0), (5+i*interval, -15), **annotate_kwargs)
 
-    plt.annotate('Cores', (0,0), (-80, -70), **annotate_kwargs)
+    plt.annotate('Cores per node', (0,0), (-80, -70), **annotate_kwargs)
     interval = 420.0/(2)
     for i, val in zip(xrange(2), [1,2]):
         plt.annotate(str(val), (0,0), (97+i*interval, -70), **annotate_kwargs)
 
     plt.show()
-    fig.savefig("1_node_comp_processes_times.png", bbox_inches='tight', dpi=180)
+    fig.savefig("2_node_comp_processes_times.png", bbox_inches='tight', dpi=180)
 
 
 def plot_cl(runs):
@@ -146,7 +146,7 @@ def plot_cl(runs):
 
 if __name__ == "__main__":
     runs = load_run(INPUT_PICKLE)
-    print(runs[0].time_results)
-    plot_cl(runs)
+    #print(runs[0].time_results)
+    
+    #plot_cl(runs)
     node_compare_lists(runs)
-
