@@ -8,7 +8,8 @@ import cPickle as pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-INPUT_PICKLE="{}/32_node_compare_882796b23c43b9a3bafc.pkl".format(OUTPUT_DIR)
+INPUT_PICKLE_2node="{}/32_node_compare_882796b23c43b9a3bafc.pkl".format(OUTPUT_DIR)
+INPUT_PICKLE_1node="{}/32_node_compare_7a9f59c4db0592338363.pkl".format(OUTPUT_DIR)
 
 def load_run(input_file):
     runs = pickle.load(open(input_file,'rb'))
@@ -105,7 +106,7 @@ def node_compare_lists(runs):
 
     annotate_kwargs = {'xycoords':'axes fraction', 'textcoords':'offset points', 'va':'top', 'size':14}
 
-    plt.title("2 Nodes")
+    plt.title("1 Nodes")
     plt.annotate('Processes', (0,0), (-80, -15), **annotate_kwargs)
     interval = 420.0/N
     for i, val in zip(xrange(N), [1,2,3,4,5,6,7,8,9,10,11,'',1,2,3,4,5,6,7,8,9,10,11,'']):
@@ -117,8 +118,119 @@ def node_compare_lists(runs):
         plt.annotate(str(val), (0,0), (97+i*interval, -70), **annotate_kwargs)
 
     plt.show()
-    fig.savefig("2_node_comp_processes_times.png", bbox_inches='tight', dpi=180)
+    fig.savefig("1_node_comp_processes_times.png", bbox_inches='tight', dpi=180)
 
+
+def aggregate_results(runs):
+    times = []
+    kl_times = []
+    total_memory = []
+
+    for num_cores in [1, 2]:
+        for mpi_nodes in [1,2,3,4,5,6,7,8,9,10,11,12]:
+            threads = 6 * num_cores
+            matcher = node_compare_matcher(threads, mpi_nodes)
+            samples = filter(matcher, runs)
+            if len(samples) == 0:
+                times.append(0.0)
+                kl_times.append(0.0)
+                total_memory.append(0.0)
+                continue
+            kl_times.append(min(
+                    run.time_results['KLCompression-eigensolve'][0] 
+                    for run in samples
+                    ))
+            times.append(min(run.total_time for run in samples))
+            mem = max(run.torque_mem for run in samples) / float(2**20)
+            total_memory.append(mem)
+
+    return {'times':times,
+            'kl_times':kl_times,
+            'total_memory':total_memory}
+
+
+def compare_node_memory(runs1, runs2):
+    memory_1 = aggregate_results(runs1)['total_memory']
+    memory_2 = aggregate_results(runs2)['total_memory']
+
+    N = len(memory_1)
+    ind = np.arange(N)
+    width = .4
+
+    fig = plt.figure(figsize=(8,6))
+    ax = plt.subplot()
+    fig.subplots_adjust(bottom=0.25, left=.15)
+    ax.set_ylim(0, 1700)
+
+    ax.yaxis.grid(True)
+    ax.set_ylabel('Memory (megabytes)', fontsize=16)
+    ax.get_xaxis().set_visible(False)
+
+    rect_mem1 = ax.bar(ind, memory_1, width, color='r')
+    rect_mem2 = ax.bar(ind+width, memory_2, width, color='g')
+
+    ax.legend( (rect_mem1[0], rect_mem2[0]), 
+            ('1 node', '2 nodes'), 
+            loc=9, prop={'size':16}, bbox_to_anchor=[.3, 1.])
+
+    annotate_kwargs = {'xycoords':'axes fraction', 'textcoords':'offset points', 'va':'top', 'size':14}
+
+    plt.title("Memory comparison")
+    plt.annotate('Processes', (0,0), (-80, -15), **annotate_kwargs)
+    interval = 420.0/N
+    for i, val in zip(xrange(N), [1,2,3,4,5,6,7,8,9,10,11,'',1,2,3,4,5,6,7,8,9,10,11,'']):
+        plt.annotate(str(val), (0,0), (5+i*interval, -15), **annotate_kwargs)
+
+    plt.annotate('Processors per node', (0,0), (-80, -70), **annotate_kwargs)
+    interval = 420.0/(2)
+    for i, val in zip(xrange(2), [1,2]):
+        plt.annotate(str(val), (0,0), (97+i*interval, -70), **annotate_kwargs)
+
+    plt.show()
+    fig.savefig("node_comp_memory.png", bbox_inches='tight', dpi=180)
+
+def compare_node_times(runs1, runs2):
+    results_1 = aggregate_results(runs1)
+    results_2 = aggregate_results(runs2)
+
+    N = len(results_1['times'])
+    ind = np.arange(N)
+    width = .4
+
+    fig = plt.figure(figsize=(8,6))
+    ax = plt.subplot()
+    fig.subplots_adjust(bottom=0.25, left=.15)
+    ax.set_ylim(0, 1700)
+
+    ax.yaxis.grid(True)
+    ax.set_ylabel('Time (Seconds)', fontsize=16)
+    ax.get_xaxis().set_visible(False)
+
+    rect_time1 = ax.bar(ind, results_1['times'], width, color='#E8E28B')
+    rect_kl_time1 = ax.bar(ind, results_1['kl_times'], width, color='#4C9645')
+    
+    rect_time2 = ax.bar(ind+width, results_2['times'], width, color='#C2BF9B')
+    rect_kl_time2 = ax.bar(ind+width, results_2['kl_times'], width, color='#4F854A')
+
+    ax.legend( (rect_time1[0], rect_kl_time1[0], rect_time2[0], rect_kl_time2[0]), 
+            ('1 node time', 'eigensolver', '2 node time', 'eigensolver'), 
+            loc=9, prop={'size':16}, bbox_to_anchor=[.2, 1.])
+
+    annotate_kwargs = {'xycoords':'axes fraction', 'textcoords':'offset points', 'va':'top', 'size':14}
+
+    plt.title("Time comparison")
+    plt.annotate('Processes', (0,0), (-80, -15), **annotate_kwargs)
+    interval = 420.0/N
+    for i, val in zip(xrange(N), [1,2,3,4,5,6,7,8,9,10,11,'',1,2,3,4,5,6,7,8,9,10,11,'']):
+        plt.annotate(str(val), (0,0), (5+i*interval, -15), **annotate_kwargs)
+
+    plt.annotate('Processors per node', (0,0), (-80, -70), **annotate_kwargs)
+    interval = 420.0/(2)
+    for i, val in zip(xrange(2), [1,2]):
+        plt.annotate(str(val), (0,0), (97+i*interval, -70), **annotate_kwargs)
+
+    plt.show()
+    fig.savefig("node_comp_time.png", bbox_inches='tight', dpi=180)
 
 def plot_cl(runs):
     l, cl = np.loadtxt("{}/{}".format(SOURCES_DIR, runs[0].source), dtype=float, unpack=True)
@@ -145,8 +257,10 @@ def plot_cl(runs):
 
 
 if __name__ == "__main__":
-    runs = load_run(INPUT_PICKLE)
-    #print(runs[0].time_results)
+    runs1 = load_run(INPUT_PICKLE_1node)
+    runs2 = load_run(INPUT_PICKLE_2node)
+    compare_node_times(runs1, runs2)
+    compare_node_memory(runs1, runs2)
     
     #plot_cl(runs)
-    node_compare_lists(runs)
+    #node_compare_lists(runs)
