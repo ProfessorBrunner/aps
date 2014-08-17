@@ -73,34 +73,34 @@ def node_compare_lists(runs):
 
     N = len(times)
     ind = np.arange(N)
-    width = 1
+    width = .5
 
     fig = plt.figure(figsize=(8,6))
     ax = plt.subplot()
     fig.subplots_adjust(bottom=0.25, left=.15)
-    # memax = fig.add_axes(ax.get_position())
+    memax = fig.add_axes(ax.get_position())
     ax.set_ylim(0, 1600)
-    # memax.set_ylim(0, 2400)
-    # memax.patch.set_visible(False)
-    # memax.yaxis.set_label_position('right')
-    # memax.yaxis.set_ticks_position('right')
-    # memax.spines['bottom'].set_position(('outward', 35))
+    memax.set_ylim(0, 2400)
+    memax.patch.set_visible(False)
+    memax.yaxis.set_label_position('right')
+    memax.yaxis.set_ticks_position('right')
+    memax.spines['bottom'].set_position(('outward', 35))
 
     ax.yaxis.grid(True)
     ax.set_ylabel('Time (seconds)', fontsize=16)
     ax.get_xaxis().set_visible(False)
-    # memax.get_xaxis().set_visible(False)
-    # memax.set_ylabel('Memory (megabytes)', fontsize=16)
-    # memax.spines['bottom'].set_visible(False)
+    memax.get_xaxis().set_visible(False)
+    memax.set_ylabel('Memory (megabytes)', fontsize=16)
+    memax.spines['bottom'].set_visible(False)
 
 
     rect_time = ax.bar(ind, times, width, color='r')
     rect_kl_time = ax.bar(ind, kl_times, width, color='g')
-    #rect_mem = memax.bar(ind+width, total_memory, width, color='b')
+    rect_mem = memax.bar(ind+width, total_memory, width, color='y')
     #plt.axvline(x=3.8, ymin=-1, ymax = 1, linewidth=1, color='k')
 
-    ax.legend( (rect_time[0], rect_kl_time[0]), 
-            ('Runtime', 'eigensolver time'), 
+    ax.legend( (rect_time[0], rect_kl_time[0],rect_mem), 
+            ('Runtime', 'eigensolver time', 'Total memory'), 
             loc=9, prop={'size':16}, bbox_to_anchor=[.3, 1.])
 
     annotate_kwargs = {'xycoords':'axes fraction', 'textcoords':'offset points', 'va':'top', 'size':14}
@@ -116,7 +116,7 @@ def node_compare_lists(runs):
     for i, val in zip(xrange(2), [1,2]):
         plt.annotate(str(val), (0,0), (97+i*interval, -70), **annotate_kwargs)
 
-    #plt.show()
+    plt.show()
     fig.savefig("1_node_comp_processes_times.png", bbox_inches='tight', dpi=180)
 
 

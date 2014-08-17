@@ -186,7 +186,7 @@ def create_batch_name(runs, prefix='batch'):
 
 NUM_CORE_COMPARE = {
     'mpi_nodes':1,
-    'nodes':1,
+    'nodes':2,
     'threads':12,
     'threads_per_core':6,
     'nside':32,
@@ -235,7 +235,7 @@ def make_num_core_compare_batch():
     submit_script = open("submit.bash", 'w')
     submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
     for i, run in enumerate(runs):
-        if run.mpi_nodes > run.threads:
+        if run.mpi_nodes > run.threads * run.nodes:
             continue
         aps_in_temp = deepcopy(aps_in)
         aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
