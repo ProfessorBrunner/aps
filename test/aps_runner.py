@@ -45,6 +45,7 @@ class aps_run:
                 string += str(key) + str(val)
         self.hash_id = sha224(string).hexdigest()[0:10]
         return self.hash_id
+
     def __repr__(self):
         return self.name
 
@@ -178,7 +179,7 @@ def create_pbs(run):
     return '\n'.join(script)
 
 def create_batch_name(runs, prefix='batch'):
-    names = [run.name for run in runs]
+    names = [run.create_unique_id() for run in runs]
     unique = sha224(''.join(names)).hexdigest()[0:20]
     return "{}_{}".format(prefix, unique)
 
