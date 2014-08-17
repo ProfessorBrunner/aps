@@ -9,6 +9,7 @@ from hashlib import sha224
 import cPickle as pickle
 import numpy as np
 import re
+import os
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
 #APS_DIR="/home/amwarren/aps"
@@ -248,6 +249,11 @@ def make_num_core_compare_batch():
         run.pixels = aps_in_temp.pixels
         run.initial_cl = aps_in_temp.initial_cl
 
+        minutes = 12 * (run.threads/6) + run.mpi_nodes
+        hours = minutes / 60
+        minutes = minutes % 60
+        run.time = "{:02}:{:02}:00".format(hours, minutes)
+
         run.cores = run.threads/run.threads_per_core * run.nodes
         #run.mpi_nodes = run.mpi_nodes * run.cores
         run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
@@ -263,6 +269,8 @@ def make_num_core_compare_batch():
 
         pbs_file.write(create_pbs(run))
 
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
     pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
     pickle.dump(runs, pickle_file)
 
