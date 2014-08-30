@@ -23,10 +23,10 @@ distributed_memory: .FORCE
 
 TEST_NSIDE=8
 NUM_PROC=1
-FITS=$(TEST_NSIDE)_53918_lcdm
-BANDS=CL_$(TEST_NSIDE)_lcdm
-# FITS=32_1000000_model_4
-# BANDS=CL_32_model_4
+# FITS=$(TEST_NSIDE)_53918_lcdm
+# BANDS=CL_$(TEST_NSIDE)_lcdm
+FITS=32_node_compare_1000000000
+BANDS=32_node_compare_1000000000
 DISTRIBUTED_TEST_DIR=data/test_distributed_$(BANDS)
 SHARED_TEST_DIR=data/test_shared_$(BANDS)
 
