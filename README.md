@@ -2,21 +2,21 @@
 
 * * *
 
-Professor Robert J. Brunner
-Laboratory for Cosmological Data Mining
-University of Illinois Urbana-Champagne
+Professor Robert J. Brunner  
+Laboratory for Cosmological Data Mining  
+University of Illinois Urbana-Champaign  
 
 #### Original shared memory implementation
-Brett Hayes
-http://lcdm.astro.illinois.edu/code/aps.html
-https://github.com/ProfessorBrunner/aps
+Brett Hayes  
+http://lcdm.astro.illinois.edu/code/aps.html  
+https://github.com/ProfessorBrunner/aps  
 
 #### Distributed memory implementation 
-Work done during __The Passionate On Parallel REU__
-at __The University of Illinois Urbana-Champaign__
-
-By Joy Hill and Alex Warren
-under the advisement of Matias Carrasco Kind
+Work done during __The Passionate On Parallel REU__  
+at __The University of Illinois Urbana-Champaign__  
+ 
+By Joy Hill and Alex Warren  
+under the advisement of Matias Carrasco Kind  
 
 * * *
 
