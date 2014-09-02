@@ -459,6 +459,7 @@ void AngularPowerSpectrum::CalculateDifference() {
   }
 
   difference_.Attach(bins_, bins_, *grid_, 0, 0, local_difference_.data(), local_height_ );
+  //Read(difference_, "data/test_shared_CL_8_lcdm/difference.dat", BINARY_FLAT);
 }
 
 void AngularPowerSpectrum::EstimateC() {
@@ -488,7 +489,7 @@ void AngularPowerSpectrum::EstimateC() {
   //use a different name to make clear that the matrix is different
   DistMatrix<double>& covariance_inv = sum_;
   SymmetricInverse(LOWER, covariance_inv);
-  // Read(sum_, "data/test_shared_CL_32_model_4/covariance_model_iter_1.dat", BINARY_FLAT);
+  //Read(sum_, "data/test_shared_CL_8_lcdm/covariance_model_iter_1.dat", BINARY_FLAT);
 
   Barrier();
   elapsed = timer.Stop();
@@ -553,7 +554,7 @@ void AngularPowerSpectrum::EstimateC() {
     Copy(fisher, fisher_inv);
     SymmetricInverse(LOWER, fisher_inv);
 
-    // Read(fisher_inv, "data/test_shared_CL_32_model_4/inv_fisher_iter_1.dat", BINARY_FLAT);
+    //Read(fisher_inv, "data/test_shared_CL_8_lcdm/inv_fisher_iter_1.dat", BINARY_FLAT);
 
     Copy(fisher_inv, fisher_inv_sqrt);
     SquareRoot(fisher_inv_sqrt); //Elemental version has bug
@@ -620,6 +621,7 @@ void AngularPowerSpectrum::EstimateC() {
     SaveMatrix(std::string("average_iter_")+std::to_string(iteration_), average);
     SaveMatrix(std::string("window_iter_")+std::to_string(iteration_), W_prime);
     SaveMatrix(std::string("pre_window_iter_")+std::to_string(iteration_), W);
+    SaveMatrix(std::string("Z_iter_")+std::to_string(iteration_), Z);
     SaveMatrix(std::string("Y_iter_")+std::to_string(iteration_), Y_inv);
     Matrix<double> c_matrix;
     c_matrix.Attach(bands_, 1, c_, bands_);

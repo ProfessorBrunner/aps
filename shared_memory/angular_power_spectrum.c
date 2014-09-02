@@ -517,6 +517,8 @@ int calculate_KL_C(double *C, double *C_change, double *F, double *average, FILE
   //char filename[kMaxChars];
   sprintf(filename, "window_iter_%d", iteration);
   save_raw_double_array(test_root, filename, W, g_bands*g_bands);
+  sprintf(filename, "Z_iter_%d", iteration);
+  save_raw_double_array(test_root, filename, Z, g_bands*g_bands);
 # endif
 
   hold = 0;

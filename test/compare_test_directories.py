@@ -63,16 +63,22 @@ GRAPH_FILES=[
     'eigenvalues',
     'eigenvectors'
 ]
-# GRAPH_FILES = [
-#     'difference',
-#     'eigenvectors',
-#     'eigenvalues',
-#     'kl_noise',
-#     'fisher',
-#     'covariance_model_iter',
-#     'kl_overdensity',
-#     'C_iter_'
-# ]
+GRAPH_FILES = [
+    'C_iter_[0-9]*',
+    'pre_window',
+    'Y',
+    'Z',
+    'difference',
+    'average',
+    # # 'signal00[0-3]',
+    'covariance_model_iter_',
+    # # 'eigenvalues',
+    # # 'eigenvectors',
+    'kl_noise',
+    # # 'kl_overdensity',
+    'fisher_iter_[0-9]*', 
+    'window_iter_[0-9]*',
+]
 GRAPH_REGEX_LIST = [re.compile(x) for x in GRAPH_FILES]
 
 def format_name(name, strip_numbers=False):
@@ -399,7 +405,7 @@ def graph_directories(expected_path, observed_path, graph_type='box',
             fig.suptitle(format_name(matrix_name), fontsize=24, y=1.1)
             fig.canvas.set_window_title(matrix_name)
             if output_dir:
-                fig.savefig("{}/{}_heatmap".format(output_dir, matrix_name),
+                fig.savefig("{}/{}_{}_map".format(output_dir, matrix_name, graph_type),
                             bbox_inches='tight', dpi=180)
                 plt.close(fig)
             else:

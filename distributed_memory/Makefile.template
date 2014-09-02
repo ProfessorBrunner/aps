@@ -7,9 +7,9 @@ CXX=g++
 MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl
 HEALPIXROOT=/usr/local/src/Healpix_3.11/
 
-CFLAGS=-I$(HEALPIXROOT)/include
+CFLAGS+=-I$(HEALPIXROOT)/include
 LDFLAGS+=-L$(HEALPIXROOT)/lib
-LDLIBS=-ldl -lm -lcfitsio -lchealpix
+LDLIBS+=-ldl -lm -lcfitsio -lchealpix
 
 SOURCES=AngularPowerSpectrum.cc aps.cc OverdensityMap.cc BandPower.cc
 LIBS=AngularPowerSpectrum.h BandPower.h OverdensityMap.h
