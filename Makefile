@@ -9,6 +9,8 @@
 # https://github.com/ProfessorBrunner/aps
 
 
+PYTHON=python
+
 all: shared_memory distributed_memory
 
 shared_memory: .FORCE
@@ -39,13 +41,13 @@ test_shared: shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	rm -rf $(SHARED_TEST_DIR)
 	./shared_memory/KL_spectrum_output_test $(FITS_PATH) $(BANDS_PATH)
 	./test/cat_signal.bash $(SHARED_TEST_DIR)
-	./test/compare_test_directories.py data/standard $(SHARED_TEST_DIR) $(COMPARE_FLAGS)
+	$(PYTHON) ./test/compare_test_directories.py data/standard $(SHARED_TEST_DIR) $(COMPARE_FLAGS)
 
 test_distributed: distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	rm -rf $(DISTRIBUTED_TEST_DIR)
 	mpirun -n $(NUM_PROC) ./distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	./test/cat_signal.bash $(DISTRIBUTED_TEST_DIR)
-	./test/compare_test_directories.py data/standard $(DISTRIBUTED_TEST_DIR) $(COMPARE_FLAGS)
+	$(PYTHON) ./test/compare_test_directories.py data/standard $(DISTRIBUTED_TEST_DIR) $(COMPARE_FLAGS)
 
 test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $(FITS_PATH) $(BANDS_PATH)
 	@echo
@@ -59,7 +61,7 @@ test_debug: shared_memory/KL_spectrum_output_test  distributed_memory/aps_test $
 
 	# ./test/cat_signal.bash $(SHARED_TEST_DIR)
 	# ./test/cat_signal.bash $(DISTRIBUTED_TEST_DIR)
-	./test/compare_test_directories.py $(SHARED_TEST_DIR) $(DISTRIBUTED_TEST_DIR)  $(COMPARE_FLAGS)
+	$(PYTHON) ./test/compare_test_directories.py $(SHARED_TEST_DIR) $(DISTRIBUTED_TEST_DIR)  $(COMPARE_FLAGS)
 
 distributed_memory/aps_test: .FORCE
 	@echo
@@ -88,7 +90,7 @@ standard: .FORCE
 	@:
 
 data: .FORCE
-	./test/generate_inputs.py -c ./test/catalog.dat ./data $(TEST_NSIDE)
+	$(PYTHON) ./test/generate_inputs.py -c ./test/catalog.dat ./data $(TEST_NSIDE)
 
 profile: .FORCE
 	$(MAKE) -C ./shared_memory profile

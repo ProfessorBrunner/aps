@@ -1,0 +1,18 @@
+#aps/PATHS is included by both shared and distributed memory makefiles.
+# To use:
+# $ cp PATHS.template PATHS
+# modify PATHS for your system
+
+HEALPIXROOT=/usr/local/src/Healpix_3.11/
+
+#distributed_memory doesn't use MKLROOT
+MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl
+
+#shared_memory doesn't use ELEM_INCLUDE
+ELEM_INCLUDE=/usr/local/conf/ElemVars
+
+#You may need to add paths for cfitsio if it isn't on your path
+
+CFLAGS=
+LDFLAGS=
+LDLIBS=
