@@ -13,9 +13,9 @@
 # mkl flag maker
 # https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 
+include ../PATHS
+
 CC=gcc
-MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl
-HEALPIXROOT=/usr/local/src/Healpix_3.11/
 
 CFLAGS+=-O3 -fopenmp -m64 -I$(MKLROOT)/include -I$(HEALPIXROOT)/include
 LDFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_gnu_thread.a -Wl,--end-group

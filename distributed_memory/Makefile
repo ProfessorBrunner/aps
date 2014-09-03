@@ -1,11 +1,10 @@
 # Quadratic Estimation of Angular Power Spectrum
 # Parallel implementation
 
-include /usr/local/conf/ElemVars
+include ../PATHS
+include $(ELEM_INCLUDE)
 CC=gcc
 CXX=g++
-MKLROOT=/opt/intel/composer_xe_2013_sp1.2.144/mkl
-HEALPIXROOT=/usr/local/src/Healpix_3.11/
 
 CFLAGS+=-I$(HEALPIXROOT)/include
 LDFLAGS+=-L$(HEALPIXROOT)/lib
