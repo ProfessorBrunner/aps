@@ -82,7 +82,8 @@ AngularPowerSpectrum::AngularPowerSpectrum(int bins, int bands,
        local_height_(Length(bins, grid_row_, grid_height_)),
        local_width_(Length(bins, grid_col_, grid_width_)),
        is_root_(grid.Rank() == 0),
-       is_compressed_(false) {
+       is_compressed_(false),
+       noise_(grid) {
 }
 
 AngularPowerSpectrum::~AngularPowerSpectrum() {}
@@ -223,7 +224,7 @@ void AngularPowerSpectrum::CreateOverdensity() {
   if (is_root_) std::cout << std::endl << "Creating Overdensity" << std::endl;
   DistMatrix<double, CIRC, CIRC> temp_overdensity(*grid_);
   temp_overdensity.Attach(bins_, 1, *grid_, 0, 0, local_overdensity_, bins_);
-  overdensity_ = temp_overdensity;
+  overdensity_ = DistMatrix<double, VC, STAR>(temp_overdensity);
 }
 
 void AngularPowerSpectrum::CalculateSignal() {
@@ -383,7 +384,7 @@ void AngularPowerSpectrum::KLCompression() {
   //Creating B_prime to keep eigenvectors with eigenvalues > 1
   for (cutoff = w.Height()-1; cutoff > 0 && w.Get(cutoff, 0) < 1; --cutoff);
   if (is_root_) std::cout << "KL Compression RATIO " << bins_ << ":" << cutoff + 1 << std::endl;
-  Zeros(temp_transform, bins_, bins_);
+  Zeros(temp_transform, cutoff + 1, bins_);
   bins_ = cutoff + 1;
   local_height_ = Length(bins_, grid_row_, grid_height_);
   local_width_ = Length(bins_, grid_col_, grid_width_);
@@ -403,7 +404,6 @@ void AngularPowerSpectrum::KLCompression() {
   Gemm(NORMAL, NORMAL, 1.0, temp_transform, B_prime, 0.0, noise_);
   //Read(noise_, "distributed_memory/kl_noise.dat", BINARY_FLAT);
   sum_.Empty(); //Sum isn't valid after KL compresssion
-
   for (int i = 0; i < bands_; ++i){
     Gemm(TRANSPOSE, NORMAL, 1.0, B_prime, signal_[i], 0.0, temp_transform);
     signal_[i].Empty();
@@ -464,11 +464,14 @@ void AngularPowerSpectrum::CalculateDifference() {
 
 void AngularPowerSpectrum::EstimateC() {
   if (is_root_) std::cout << std::endl << "Estimating C" << std::endl;
+  std::cout << "Me" << std::endl;
   DistMatrix<double> P(*grid_), temp_avg(*grid_);
   std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   Matrix<double> fisher, average, W_prime;
   double elapsed;
   Timer timer;
+  std::cout << "Ma" << std::endl;
+
 
   if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
   Barrier();
@@ -478,7 +481,7 @@ void AngularPowerSpectrum::EstimateC() {
   if (iteration_ != 1 || is_compressed_) {
     if (is_root_) std::cout << "Calculating Sum" << std::endl;
     Zeros( sum_, bins_, bins_);
-    for(int k = 0; k < bands_; ++k) {
+    for(int k = 0; k < bands_; ++k) {      
       Axpy(c_[k], signal_[k], sum_);
     }
   }
@@ -502,8 +505,10 @@ void AngularPowerSpectrum::EstimateC() {
   for (int k = 0; k < bands_; ++k) {
     Zeros(A[k], bins_, bins_);
     /* TODO(Alex): Could use Hemm/Symm for symetric multiplication */
+    std::cout << "covariance_inv " << ((covariance_inv.Grid() != *grid_)? "diff" : "same") << std::endl;
     Gemm(NORMAL, NORMAL, 1.0, covariance_inv, signal_[k], 0.0, A[k]);
   }
+
   Zeros(fisher, bands_, bands_);
   for (int k = 0; k < bands_; ++k) {
     for (int k_p = k; k_p < bands_; ++k_p) {
@@ -700,7 +705,7 @@ void AngularPowerSpectrum::SaveMatrix(std::string name,
 }
 
 double AngularPowerSpectrum::TraceMultiply(DistMatrix<double> &m1, DistMatrix<double> &m2) {
-  DistMatrix<double> row, col, result;
+  DistMatrix<double> row(*grid_), col(*grid_), result(*grid_);
   double sum = 0;
   Int size = m1.Height();
 
