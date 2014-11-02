@@ -353,13 +353,13 @@ def plot_band_powers(expected_path, observed_path, anafast_file, actual_file,
         #anafast = anafast/1000
 
         fig = plt.figure()
-        plt.plot(l, cl, label='True value')
+        plt.plot(l, cl, label='Model value')
         plt.plot(band_center, anafast, 'bo', label='Initial', markersize=5)
         plt.plot(band_center, expected, 'gx', label='Shared', markersize=10)
         plt.plot(band_center, observed, 'r+', label='Distributed', markersize=10)
 
         plt.yscale('log')
-        plt.ylim(1e-3, 1e-0)
+        plt.ylim(1e-3, 1e1)
         plt.xlim(5, band_center.max())
         plt.xlabel(r'$\ell$', fontsize=18)
         plt.ylabel(r'$C_\ell$', fontsize=18)
@@ -547,7 +547,7 @@ def main():
     parser.add_argument("--box-plot", dest="plot_box", action="store_true",
         help="display error boxplot of important data")
     parser.add_argument("-c","-c-plot", nargs=2, dest="plot_c_file",
-        help="Given anafast c values, compare with expected and observed")
+        help="Initial file and Model Values. Given anafast c values, compare with expected and observed")
     parser.add_argument("-o", "--output", nargs=1, dest="output_dir",
         help="Output directory")
 

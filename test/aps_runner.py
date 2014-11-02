@@ -12,6 +12,7 @@ import re
 import os
 
 EMAIL_ADDRESS="amwarren@email.arizona.edu"
+ELEMENTAL_TEST_DIR = "/home/amwarren/elem_test"
 #APS_DIR="/home/amwarren/aps"
 APS_DIR = "/home/alex/pop_uiuc/aps"
 DATA_DIR = "{}/data".format(APS_DIR)
@@ -179,6 +180,25 @@ def create_pbs(run):
     script.append(cmd)
     return '\n'.join(script)
 
+def create_elem_pbs(run):
+    script = ["#!/bin/bash"]
+    script.append("#")
+    script.append("#PBS -N {}".format(run.name))
+    script.append("#PBS -q secondary")
+    script.append("#PBS -l naccesspolicy=singlejob")
+    script.append("#PBS -l walltime={}".format(run.time))
+    script.append("#PBS -l nodes={}:ppn={}:{}:{}".format(
+            run.nodes, run.threads, run.memory, run.cluster))
+    script.append("#PBS -m be")
+    script.append("#PBS -M {}".format(EMAIL_ADDRESS))
+    script.append("#PBS -j oe")
+    script.append("#PBS -o {}/out_{}".format(ELEMENTAL_TEST_DIR, run.name))
+    script.append("cd {}".format(APS_DIR))
+    script.append("mkdir -p {}".format(ELEMENTAL_TEST_DIR))
+    cmd = "mpiexec -verbose -n {} ./Gemm".format(run.mpi_nodes)
+    script.append(cmd)
+    return '\n'.join(script)
+
 def create_batch_name(runs, prefix='batch'):
     names = [run.create_unique_id() for run in runs]
     unique = sha224(''.join(names)).hexdigest()[0:20]
@@ -208,17 +228,23 @@ NUM_CORE_COMPARE = {
     'name':"x",
 }
 
-STANDARD_ = {
+COMPLEXITY_COMPARE = {
+    'mpi_nodes':1,
     'nodes':1,
-    'threads':12,
+    'threads':6,
+    'threads_per_core':6,
     'nside':64,
-    'pixels':6836,
-    'bands':10,
+    'ngalaxies':1e9,
+    'pixels':1024,
+    'bands':40,
+    'run':1,
+    'time':"00:20:00",
+    'memory':"m24G",
+    'cluster':"taub",
     'kl':True,
     'noise_model':'standard',
     'cross_correlation':False,
-    'fits_file':"32_1000000_model_4.fits",
-    'bands_file':"CL_32_model_4.bands",
+    'source':"CL_model0_0.30_0.40_zspec_799_fit2.dat",
     'name':"x",
 }
 
@@ -274,5 +300,97 @@ def make_num_core_compare_batch():
     pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
     pickle.dump(runs, pickle_file)
 
+def make_complexity_analysis_batch():
+    run = aps_run(COMPLEXITY_COMPARE)
+    aps_in = aps_input("{}/{}".format(SOURCES_DIR, run.source), run.nside)
+
+    runs = [run]
+    runs = cross_runs(runs, 'nodes', [1,2])
+    runs = cross_runs(runs, 'bands', [2,4,8,14,20])
+    runs = cross_runs(runs, 'pixels', [100,200,500,1000,2000,4000,8000])
+    batch_name = create_batch_name(runs, "64_complexity_compare")
+
+
+    submit_script = open("submit.bash", 'w')
+    submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
+    for i, run in enumerate(runs):
+        if run.mpi_nodes > run.threads * run.nodes:
+            continue
+        aps_in_temp = deepcopy(aps_in)
+        aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
+        run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
+        run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
+
+        aps_in_temp.write(run.fits_file, run.bands_file, ngalaxies=run.ngalaxies)
+
+        run.pixels = aps_in_temp.pixels
+        run.initial_cl = aps_in_temp.initial_cl
+
+        minutes = 12 * (run.threads/6) + run.mpi_nodes
+        hours = minutes / 60
+        minutes = minutes % 60
+        run.time = "{:02}:{:02}:00".format(hours, minutes)
+
+        run.cores = run.threads/run.threads_per_core * run.nodes
+        #run.mpi_nodes = run.mpi_nodes * run.cores
+        run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
+
+        pbs_file_name = "{}.pbs".format(run.name)
+        pbs_file = open(pbs_file_name, 'w')
+
+        qcmds = ['\n\n### {}'.format(run.name)]
+        qcmds.append('jobname=`qsub {}.pbs`'.format(run.name))
+        qcmds.append('echo "$jobname"')
+        qcmds.append('echo "qdel $jobname" | cut -d\'.\' -f 1 >> abort.bash')
+        submit_script.write('\n'.join(qcmds))
+
+        pbs_file.write(create_pbs(run))
+
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+    pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
+    pickle.dump(runs, pickle_file)
+
+def make_elemental_test():
+    run = aps_run(NUM_CORE_COMPARE)
+
+    runs = [run]
+    runs = cross_runs(runs, 'nodes', [1,2])
+    runs = cross_runs(runs, 'threads', [6,12])
+    runs = cross_runs(runs, 'mpi_nodes', [1,2,3,4,5,6,7,8,9,10,11,12])
+    batch_name = create_batch_name(runs, "elemental_gemm_compare")
+
+
+    submit_script = open("submit.bash", 'w')
+    submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
+    for i, run in enumerate(runs):
+        if run.mpi_nodes > run.threads * run.nodes:
+            continue
+
+        minutes = 1
+        hours = minutes / 60
+        minutes = minutes % 60
+        run.time = "{:02}:{:02}:00".format(hours, minutes)
+
+        run.cores = run.threads/run.threads_per_core * run.nodes
+        #run.mpi_nodes = run.mpi_nodes * run.cores
+        run.name_from_keys(['nodes', 'threads', 'mpi_nodes'], prefix="gemm")
+
+        pbs_file_name = "{}.pbs".format(run.name)
+        pbs_file = open(pbs_file_name, 'w')
+
+        qcmds = ['\n\n### {}'.format(run.name)]
+        qcmds.append('jobname=`qsub {}.pbs`'.format(run.name))
+        qcmds.append('echo "$jobname"')
+        qcmds.append('echo "qdel $jobname" | cut -d\'.\' -f 1 >> abort.bash')
+        submit_script.write('\n'.join(qcmds))
+
+        pbs_file.write(create_elem_pbs(run))
+
+    if not os.path.exists(ELEMENTAL_TEST_DIR):
+        os.makedirs(ELEMENTAL_TEST_DIR)
+    pickle_file = open("{}/{}.pkl".format(ELEMENTAL_TEST_DIR, batch_name), 'wb')
+    pickle.dump(runs, pickle_file)
+
 if __name__ == "__main__":
-    make_num_core_compare_batch()
+    make_elemental_test()
