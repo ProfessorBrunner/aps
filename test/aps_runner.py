@@ -207,7 +207,7 @@ def create_batch_name(runs, prefix='batch'):
 
 NUM_CORE_COMPARE = {
     'mpi_nodes':1,
-    'nodes':2,
+    'nodes':4,
     'threads':12,
     'threads_per_core':6,
     'nside':32,
@@ -258,7 +258,6 @@ def make_num_core_compare_batch():
     #runs = cross_runs(runs, 'cores', [1,2])
     runs = cross_runs(runs, 'threads', [6,12])
     runs = cross_runs(runs, 'mpi_nodes', [1,2,3,4,5,6,7,8,9,10,11,12])
-    runs = cross_runs(runs, 'repeat', [1,2])
     batch_name = create_batch_name(runs, "32_node_compare")
 
 
