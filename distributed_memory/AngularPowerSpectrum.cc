@@ -195,7 +195,7 @@ void AngularPowerSpectrum::run() {
   /*ITERATIVE ESTIMATION*/
   timer.Start();
   if (is_root_) std::cout << std::endl << "Iterative Estimation";
-  for (iteration_ = 1; iteration_ <= 3; ++iteration_) {
+  for (iteration_ = 1; iteration_ <= 1; ++iteration_) {
     if (is_root_) std::cout << "Iteration " << iteration_ << std::endl;
     PrintMemory("Iteration-" + std::to_string(iteration_));
     Barrier();
@@ -464,13 +464,11 @@ void AngularPowerSpectrum::CalculateDifference() {
 
 void AngularPowerSpectrum::EstimateC() {
   if (is_root_) std::cout << std::endl << "Estimating C" << std::endl;
-  std::cout << "Me" << std::endl;
   DistMatrix<double> P(*grid_), temp_avg(*grid_);
   std::vector<DistMatrix<double>> A = std::vector<DistMatrix<double>>(bands_, DistMatrix<double>(*grid_));
   Matrix<double> fisher, average, W_prime;
   double elapsed;
   Timer timer;
-  std::cout << "Ma" << std::endl;
 
 
   if (is_root_) std::cout << "Calculating Model Covariance Inverse" << std::endl;
@@ -505,7 +503,6 @@ void AngularPowerSpectrum::EstimateC() {
   for (int k = 0; k < bands_; ++k) {
     Zeros(A[k], bins_, bins_);
     /* TODO(Alex): Could use Hemm/Symm for symetric multiplication */
-    std::cout << "covariance_inv " << ((covariance_inv.Grid() != *grid_)? "diff" : "same") << std::endl;
     Gemm(NORMAL, NORMAL, 1.0, covariance_inv, signal_[k], 0.0, A[k]);
   }
 

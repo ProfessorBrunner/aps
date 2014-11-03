@@ -31,6 +31,18 @@ class aps_input:
         self.map[self.idx_masked] = -2.0
         self.make_mean_zero()
 
+    def reduce_to_count(self, count):
+        self.count_pixels()
+        if self.pixels < count:
+            print "Cannot increase count {} -> {}".format(self.pixels, count)
+        idx = 0
+        while self.pixels > count:
+            if self.map[idx] >= -1.0:
+                self.map[idx] = -2.0
+                self.pixels += -1
+            idx += 1
+
+
     def make_mean_zero(self):
         idx = np.where(self.map >= -1.0)[0]
         mean = np.mean(self.map[idx])
@@ -46,6 +58,10 @@ class aps_input:
         delta_l = 4
         min_l = 7
         self.bands = int(np.floor( (self.nside*3.0 - min_l)/delta_l ))
+        self.set_bands(self.bands, delta_l, min_l)
+
+    def set_bands(self, bands, delta_l, min_l):
+        self.bands = bands
         self.l_start = np.array([min_l+delta_l*i for i in xrange(self.bands)])
         self.l_end = self.l_start+delta_l-1
         self.l_center = self.l_start+delta_l/2
@@ -55,7 +71,8 @@ class aps_input:
 
     def write(self, fits_file, band_file, ngalaxies=1e6):
         self.count_pixels()
-        self.get_bands()
+        if not self.bands:
+            self.get_bands()
         print "saving %s" % band_file
         np.savetxt(band_file,
                 zip(range(self.bands), self.l_center, self.l_start, self.l_end,

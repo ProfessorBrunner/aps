@@ -193,8 +193,7 @@ def create_elem_pbs(run):
     script.append("#PBS -M {}".format(EMAIL_ADDRESS))
     script.append("#PBS -j oe")
     script.append("#PBS -o {}/out_{}".format(ELEMENTAL_TEST_DIR, run.name))
-    script.append("cd {}".format(APS_DIR))
-    script.append("mkdir -p {}".format(ELEMENTAL_TEST_DIR))
+    script.append("cd {}".format(ELEMENTAL_TEST_DIR))
     cmd = "mpiexec -verbose -n {} ./Gemm".format(run.mpi_nodes)
     script.append(cmd)
     return '\n'.join(script)
@@ -248,6 +247,9 @@ COMPLEXITY_COMPARE = {
     'name':"x",
 }
 
+
+
+
 def make_num_core_compare_batch():
     run = aps_run(NUM_CORE_COMPARE)
     aps_in = aps_input("{}/{}".format(SOURCES_DIR, run.source), run.nside)
@@ -300,6 +302,10 @@ def make_num_core_compare_batch():
     pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
     pickle.dump(runs, pickle_file)
 
+
+
+
+
 def make_complexity_analysis_batch():
     run = aps_run(COMPLEXITY_COMPARE)
     aps_in = aps_input("{}/{}".format(SOURCES_DIR, run.source), run.nside)
@@ -314,26 +320,29 @@ def make_complexity_analysis_batch():
     submit_script = open("submit.bash", 'w')
     submit_script.write('## Submission script\necho "## Abort script" > abort.bash\n')
     for i, run in enumerate(runs):
+        #TODO what is the proper setup for performance
         if run.mpi_nodes > run.threads * run.nodes:
             continue
         aps_in_temp = deepcopy(aps_in)
-        aps_in_temp.patch_mask([int(x == i%12) for x in xrange(12)])
+        aps_in_temp.patch_mask([int(x % 6 == 0) for x in xrange(12)])
+        aps_in_temp.reduce_to_count(run.pixels)
         run.fits_file = "{}/{}-{}.fits".format(DATA_DIR, batch_name, i)
         run.bands_file = "{}/{}-{}.bands".format(DATA_DIR, batch_name, i)
 
+        aps_in_temp.set_bands(run.bands, 2, 7)
         aps_in_temp.write(run.fits_file, run.bands_file, ngalaxies=run.ngalaxies)
 
         run.pixels = aps_in_temp.pixels
         run.initial_cl = aps_in_temp.initial_cl
 
-        minutes = 12 * (run.threads/6) + run.mpi_nodes
+        minutes = (run.pixels/1000 + 2) * run.bands**2
         hours = minutes / 60
         minutes = minutes % 60
         run.time = "{:02}:{:02}:00".format(hours, minutes)
 
         run.cores = run.threads/run.threads_per_core * run.nodes
         #run.mpi_nodes = run.mpi_nodes * run.cores
-        run.name_from_keys(['nside', 'mpi_nodes', 'cores'], prefix="num_core_compare")
+        run.name_from_keys(['bands', 'pixels', 'cores'], prefix="complexity_compare")
 
         pbs_file_name = "{}.pbs".format(run.name)
         pbs_file = open(pbs_file_name, 'w')
@@ -350,6 +359,11 @@ def make_complexity_analysis_batch():
         os.makedirs(OUTPUT_DIR)
     pickle_file = open("{}/{}.pkl".format(OUTPUT_DIR, batch_name), 'wb')
     pickle.dump(runs, pickle_file)
+
+
+
+
+
 
 def make_elemental_test():
     run = aps_run(NUM_CORE_COMPARE)
@@ -393,4 +407,4 @@ def make_elemental_test():
     pickle.dump(runs, pickle_file)
 
 if __name__ == "__main__":
-    make_elemental_test()
+    make_complexity_analysis_batch()
