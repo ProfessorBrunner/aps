@@ -23,6 +23,7 @@ class aps_input:
         self.nside = nside
         self.map = hp.synfast(cl, nside)
         self.make_mean_zero()
+        self.get_bands()
 
     def patch_mask(self, mask):
         mask = hp.ud_grade(mask, nside_out=self.nside, 
@@ -71,8 +72,6 @@ class aps_input:
 
     def write(self, fits_file, band_file, ngalaxies=1e6):
         self.count_pixels()
-        if not self.bands:
-            self.get_bands()
         print "saving %s" % band_file
         np.savetxt(band_file,
                 zip(range(self.bands), self.l_center, self.l_start, self.l_end,

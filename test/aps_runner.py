@@ -334,7 +334,7 @@ def make_complexity_analysis_batch():
         run.pixels = aps_in_temp.pixels
         run.initial_cl = aps_in_temp.initial_cl
 
-        minutes = (run.pixels/1000 + 2) * run.bands**2
+        minutes = (run.pixels/1000 + 2) * run.bands**1.3
         hours = minutes / 60
         minutes = minutes % 60
         run.time = "{:02}:{:02}:00".format(hours, minutes)
@@ -406,4 +406,4 @@ def make_elemental_test():
     pickle.dump(runs, pickle_file)
 
 if __name__ == "__main__":
-    make_complexity_analysis_batch()
+    make_num_core_compare_batch()
